@@ -1,0 +1,8 @@
+.next
+node_modules
+out
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.env*
+*.svg
