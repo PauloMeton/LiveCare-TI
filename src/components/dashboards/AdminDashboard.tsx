@@ -8,6 +8,7 @@ import { ClassBadge } from "@/components/ui/ClassBadge";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { BrandLockup } from "@/components/ui/BrandLockup";
 import { Input, Select } from "@/components/ui/Field";
+import { RealtimeRefresher } from "@/components/realtime/RealtimeRefresher";
 
 export function AdminDashboard({
   profile,
@@ -50,6 +51,15 @@ export function AdminDashboard({
 
   return (
     <div className="min-h-screen flex bg-graphite-50">
+      {/* Realtime — qualquer mudança em chamados re-renderiza o painel */}
+      <RealtimeRefresher
+        subs={[
+          { channel: "admin-tickets", table: "livecare_tickets" },
+          { channel: "admin-ticket-events", table: "livecare_ticket_events" },
+          { channel: "admin-profiles", table: "profiles" },
+        ]}
+      />
+
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-graphite-200 flex flex-col">
         <div className="px-5 py-5 border-b border-graphite-200">

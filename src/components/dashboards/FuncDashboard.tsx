@@ -8,6 +8,7 @@ import { ClassBadge } from "@/components/ui/ClassBadge";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { BrandLockup } from "@/components/ui/BrandLockup";
 import { MobileBottomNav } from "@/components/nav/MobileBottomNav";
+import { RealtimeRefresher } from "@/components/realtime/RealtimeRefresher";
 
 const filtros: Array<{ id: "todos" | "aberto" | "andamento" | "concluido"; label: string }> = [
   { id: "todos", label: "Todos" },
@@ -36,6 +37,21 @@ export function FuncDashboard({
 
   return (
     <div className="min-h-screen flex flex-col bg-graphite-50 pb-20">
+      {/* Realtime — atualiza a lista quando o admin muda algum chamado seu */}
+      <RealtimeRefresher
+        subs={[
+          {
+            channel: `func-tickets-${profile.id}`,
+            table: "livecare_tickets",
+            filter: `autor_id=eq.${profile.id}`,
+          },
+          {
+            channel: `func-events-${profile.id}`,
+            table: "livecare_ticket_events",
+          },
+        ]}
+      />
+
       {/* Topbar */}
       <header className="sticky top-0 z-10 bg-white border-b border-graphite-200 px-4 py-3 flex items-center justify-between">
         <BrandLockup size={32} />

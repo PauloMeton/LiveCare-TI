@@ -9,6 +9,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Pill } from "@/components/ui/Pill";
 import { Field, Input } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
+import { RealtimeRefresher } from "@/components/realtime/RealtimeRefresher";
 import {
   setUserRole,
   setUserEmail,
@@ -31,6 +32,11 @@ export function UsuariosList({ currentUserId, currentUserIsLider, users, loadErr
 
   return (
     <div className="min-h-screen flex bg-graphite-50">
+      {/* Realtime — refresca quando alguém se cadastra ou tem profile alterado */}
+      <RealtimeRefresher
+        subs={[{ channel: "admin-usuarios-profiles", table: "profiles" }]}
+      />
+
       <aside className="w-64 bg-white border-r border-graphite-200 flex flex-col">
         <div className="px-5 py-5 border-b border-graphite-200">
           <BrandLockup size={36} />

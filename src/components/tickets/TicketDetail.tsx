@@ -12,6 +12,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Pill } from "@/components/ui/Pill";
 import { Field, Textarea } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
+import { RealtimeRefresher } from "@/components/realtime/RealtimeRefresher";
 import {
   concluirTicket,
   setEmAndamento,
@@ -109,6 +110,22 @@ export function TicketDetail({
 
   return (
     <div className="min-h-screen bg-graphite-50 pb-20">
+      {/* Realtime — escuta mudanças neste ticket e nos eventos dele */}
+      <RealtimeRefresher
+        subs={[
+          {
+            channel: `ticket-${ticket.id}`,
+            table: "livecare_tickets",
+            filter: `id=eq.${ticket.id}`,
+          },
+          {
+            channel: `ticket-events-${ticket.id}`,
+            table: "livecare_ticket_events",
+            filter: `ticket_id=eq.${ticket.id}`,
+          },
+        ]}
+      />
+
       <header className="sticky top-0 z-10 bg-white border-b border-graphite-200 px-4 py-3 flex items-center gap-3">
         <Link href="/dashboard" className="text-graphite-900 text-xl leading-none">←</Link>
         <BrandLockup size={28} />

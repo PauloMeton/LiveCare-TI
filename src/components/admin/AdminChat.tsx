@@ -6,6 +6,7 @@ import { BrandLockup } from "@/components/ui/BrandLockup";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { MessagesThread } from "@/components/chat/MessagesThread";
+import { RealtimeRefresher } from "@/components/realtime/RealtimeRefresher";
 
 type Props = {
   profile: Profile;
@@ -39,6 +40,11 @@ export function AdminChat({
 
   return (
     <div className="h-screen flex bg-graphite-50 overflow-hidden">
+      {/* Realtime — atualiza a lista de conversas e badges quando chega msg nova */}
+      <RealtimeRefresher
+        subs={[{ channel: "admin-chat-list", table: "livecare_messages" }]}
+      />
+
       {/* Sidebar (igual ao AdminDashboard) */}
       <aside className="w-64 bg-white border-r border-graphite-200 flex flex-col flex-shrink-0">
         <div className="px-5 py-5 border-b border-graphite-200">
