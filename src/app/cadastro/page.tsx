@@ -6,8 +6,6 @@ import { Field, Input } from "@/components/ui/Field";
 import { BrandLockup } from "@/components/ui/BrandLockup";
 import { signUp } from "./actions";
 
-const ALLOWED_DOMAIN = "@liveacademia.com.br";
-
 export default function CadastroPage() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -64,19 +62,19 @@ export default function CadastroPage() {
         </div>
         <h1 className="text-2xl font-bold text-graphite-900 mb-1 text-center">Criar conta</h1>
         <p className="text-sm text-graphite-500 text-center mb-6">
-          Use seu e-mail corporativo {ALLOWED_DOMAIN}.
+          Cadastre-se com seu e-mail.
         </p>
 
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <Field label="Nome completo" required>
             <Input value={nome} onChange={(e) => setNome(e.target.value)} required />
           </Field>
-          <Field label="E-mail corporativo" required>
+          <Field label="E-mail" required>
             <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={`seu.nome${ALLOWED_DOMAIN}`}
+              placeholder="voce@exemplo.com"
               required
               autoComplete="email"
             />

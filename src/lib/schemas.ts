@@ -84,7 +84,7 @@ export const RejectTicketSchema = z.object({
 });
 export type RejectTicketInput = z.infer<typeof RejectTicketSchema>;
 
-/** Cadastro de nova conta — restrito ao domínio @liveacademia.com.br. */
+/** Cadastro de nova conta — aceita qualquer e-mail válido. */
 export const SignUpSchema = z.object({
   nome: z
     .string({ required_error: "Informe o nome." })
@@ -95,11 +95,7 @@ export const SignUpSchema = z.object({
     .string({ required_error: "Informe o e-mail." })
     .trim()
     .toLowerCase()
-    .email("Formato de e-mail inválido.")
-    .refine(
-      (v) => v.endsWith("@liveacademia.com.br"),
-      "O e-mail precisa ser do domínio @liveacademia.com.br."
-    ),
+    .email("Formato de e-mail inválido."),
   password: z
     .string({ required_error: "Informe a senha." })
     .min(8, "A senha precisa ter pelo menos 8 caracteres.")
