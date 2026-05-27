@@ -5,6 +5,7 @@ import { BrandLockup } from "@/components/ui/BrandLockup";
 import { MessagesThread } from "@/components/chat/MessagesThread";
 import { MobileBottomNav } from "@/components/nav/MobileBottomNav";
 import type { Message } from "@/lib/types";
+import { attachSignedUrls } from "@/lib/chatAttachments";
 
 export const dynamic = "force-dynamic";
 
@@ -16,13 +17,16 @@ export default async function ChatFuncionarioPage() {
   // Pega as últimas 200 e ordena ASC pra exibir cronologicamente
   const { data: rows } = await supabase
     .from("livecare_messages")
-    .select("id, conversa_id, autor_id, conteudo, read_at, deleted_at, created_at")
+    .select(
+      "id, conversa_id, autor_id, conteudo, read_at, deleted_at, created_at, attachment_path, attachment_type, attachment_size"
+    )
     .eq("conversa_id", user.id)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(200);
 
-  const initialMessages = ((rows ?? []) as Message[]).slice().reverse();
+  const ordered = ((rows ?? []) as Message[]).slice().reverse();
+  const initialMessages = await attachSignedUrls(supabase, ordered);
 
   return (
     <div className="h-screen flex flex-col bg-graphite-50">

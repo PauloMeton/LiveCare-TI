@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/getCurrentUser";
 import { createClient } from "@/lib/supabase/server";
 import { AdminChat } from "@/components/admin/AdminChat";
 import type { ConversaListItem, Message } from "@/lib/types";
+import { attachSignedUrls } from "@/lib/chatAttachments";
 
 export const dynamic = "force-dynamic";
 
@@ -35,12 +36,15 @@ export default async function AdminChatPage({
   if (selectedId) {
     const { data } = await supabase
       .from("livecare_messages")
-      .select("id, conversa_id, autor_id, conteudo, read_at, deleted_at, created_at")
+      .select(
+        "id, conversa_id, autor_id, conteudo, read_at, deleted_at, created_at, attachment_path, attachment_type, attachment_size"
+      )
       .eq("conversa_id", selectedId)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(200);
-    initialMessages = ((data ?? []) as Message[]).slice().reverse();
+    const ordered = ((data ?? []) as Message[]).slice().reverse();
+    initialMessages = await attachSignedUrls(supabase, ordered);
   }
 
   return (

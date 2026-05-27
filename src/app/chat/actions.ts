@@ -10,7 +10,7 @@ import {
 } from "@/lib/schemas";
 
 /* ============================================================
-   ENVIAR MENSAGEM
+   ENVIAR MENSAGEM (texto e/ou anexo)
    ============================================================ */
 export async function sendMessage(input: SendMessageInput) {
   const parsed = SendMessageSchema.safeParse(input);
@@ -22,10 +22,14 @@ export async function sendMessage(input: SendMessageInput) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Não autenticado" };
 
+  const v = parsed.data;
   const { error } = await supabase.from("livecare_messages").insert({
-    conversa_id: parsed.data.conversaId,
+    conversa_id: v.conversaId,
     autor_id: user.id,
-    conteudo: parsed.data.conteudo,
+    conteudo: v.conteudo ?? "",
+    attachment_path: v.attachmentPath ?? null,
+    attachment_type: v.attachmentType ?? null,
+    attachment_size: v.attachmentSize ?? null,
   });
 
   if (error) return { error: error.message };

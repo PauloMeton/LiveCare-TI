@@ -62,6 +62,9 @@ export type TicketWithAutor = Ticket & {
    CHAT
    ============================================================ */
 
+/** Tipo de anexo na mensagem (alinhado com o CHECK no banco). */
+export type AttachmentType = "image" | "video";
+
 /** Mensagem do chat (livecare_messages). */
 export type Message = {
   id: number;
@@ -71,6 +74,12 @@ export type Message = {
   read_at: string | null;     // quando a outra parte leu
   deleted_at: string | null;  // soft delete
   created_at: string;
+  // Anexo opcional — imagem ou vídeo
+  attachment_path: string | null;        // path no bucket livecare-chat
+  attachment_type: AttachmentType | null;
+  attachment_size: number | null;        // bytes
+  // Virtual: signed URL gerada na hora do fetch (não é coluna do DB)
+  attachment_url?: string | null;
 };
 
 /** Linha retornada por livecare_list_conversas() — pra admin. */

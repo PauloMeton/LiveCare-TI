@@ -107,15 +107,28 @@ export type SignUpInput = z.infer<typeof SignUpSchema>;
    CHAT
    ============================================================ */
 
-/** Envio de mensagem no chat. */
-export const SendMessageSchema = z.object({
-  conversaId: UuidSchema,
-  conteudo: z
-    .string({ required_error: "Mensagem vazia." })
-    .trim()
-    .min(1, "Mensagem vazia.")
-    .max(4000, "Mensagem muito longa (máx 4000 caracteres)."),
-});
+/** Envio de mensagem no chat — texto OU anexo (ou ambos). */
+export const SendMessageSchema = z
+  .object({
+    conversaId: UuidSchema,
+    conteudo: z
+      .string()
+      .trim()
+      .max(4000, "Mensagem muito longa (máx 4000 caracteres).")
+      .optional()
+      .default(""),
+    attachmentPath: z.string().min(1).max(500).optional().nullable(),
+    attachmentType: z.enum(["image", "video"]).optional().nullable(),
+    attachmentSize: z.number().int().positive().max(26214400).optional().nullable(),
+  })
+  .refine(
+    (v) => (v.conteudo && v.conteudo.length > 0) || !!v.attachmentPath,
+    "Mensagem vazia. Escreva algo ou anexe um arquivo."
+  )
+  .refine(
+    (v) => (v.attachmentPath ? !!v.attachmentType : true),
+    "Tipo do anexo é obrigatório."
+  );
 export type SendMessageInput = z.infer<typeof SendMessageSchema>;
 
 /** ID numérico de mensagem (PK da tabela). */
