@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import { NotificationsShell } from "@/components/notifications/NotificationsShell";
 
 export const metadata: Metadata = {
   title: "LiveCare TI — Suporte interno",
@@ -9,7 +10,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {children}
+        {/* Toasts in-app */}
+        <NotificationsShell />
+      </body>
     </html>
   );
 }
