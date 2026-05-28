@@ -240,7 +240,7 @@ function AdminTicketCard({
   unidadeNome?: string;
 }) {
   return (
-    <Link href={`/chamados/${ticket.id}`} className="block">
+    <Link href={`/chamados/${ticket.id}`} prefetch={true} className="block">
       <Card
         className={`hover:border-graphite-300 transition-colors cursor-pointer ${
           ticket.status === "concluido" || ticket.status === "cancelado" || ticket.status === "rejeitado"

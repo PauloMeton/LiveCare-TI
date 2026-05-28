@@ -7,73 +7,82 @@ import { attachTicketSignedUrls } from "@/lib/ticketAttachments";
 
 export const dynamic = "force-dynamic";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default async function ChamadoDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!UUID_RE.test(id)) notFound();
 
-  const { user, profile } = await getCurrentUser();
-  const supabase = await createClient();
+  // Auth + supabase em paralelo
+  const [{ user, profile }, supabase] = await Promise.all([
+    getCurrentUser(),
+    createClient(),
+  ]);
 
-  const { data: ticket } = await supabase
-    .from("livecare_tickets")
-    .select(
-      "id, autor_id, classe, titulo, campos, observacao, status, prioridade, unidade_id, created_at, updated_at, concluido_em, concluido_por"
-    )
-    .eq("id", id)
-    .maybeSingle<Ticket>();
+  // Ticket + events + attachments em paralelo
+  const [ticketRes, eventsRes, attsRes] = await Promise.all([
+    supabase
+      .from("livecare_tickets")
+      .select(
+        "id, autor_id, classe, titulo, campos, observacao, status, prioridade, unidade_id, created_at, updated_at, concluido_em, concluido_por"
+      )
+      .eq("id", id)
+      .maybeSingle<Ticket>(),
+    supabase
+      .from("livecare_ticket_events")
+      .select("id, ticket_id, ator_id, tipo, detalhes, created_at")
+      .eq("ticket_id", id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("livecare_ticket_attachments")
+      .select("id, ticket_id, autor_id, path, type, size, created_at")
+      .eq("ticket_id", id)
+      .order("created_at", { ascending: true }),
+  ]);
 
+  const ticket = ticketRes.data;
   if (!ticket) notFound();
 
-  // Eventos do chamado (timeline)
-  const { data: events } = await supabase
-    .from("livecare_ticket_events")
-    .select("id, ticket_id, ator_id, tipo, detalhes, created_at")
-    .eq("ticket_id", id)
-    .order("created_at", { ascending: true });
+  const events = (eventsRes.data ?? []) as TicketEvent[];
+  const attsRaw = (attsRes.data ?? []) as TicketAttachment[];
 
-  // Profiles de todos os atores envolvidos (autor + atores dos events)
+  // Profiles + unidade + signed URLs em paralelo
   const actorIds = Array.from(
-    new Set([ticket.autor_id, ...(events ?? []).map((e) => e.ator_id).filter(Boolean) as string[]])
+    new Set([
+      ticket.autor_id,
+      ...(events.map((e) => e.ator_id).filter(Boolean) as string[]),
+    ])
   );
-  const { data: profs } = await supabase
-    .from("profiles")
-    .select("id, nome, cargo")
-    .in("id", actorIds);
+
+  const [profsRes, unidadeRes, attachments] = await Promise.all([
+    supabase.from("profiles").select("id, nome, cargo").in("id", actorIds),
+    ticket.unidade_id
+      ? supabase
+          .from("unidades")
+          .select("nome")
+          .eq("id", ticket.unidade_id)
+          .maybeSingle<{ nome: string }>()
+      : Promise.resolve({ data: null }),
+    attachTicketSignedUrls(supabase, attsRaw),
+  ]);
+
   const profilesMap: Record<string, { nome: string | null; cargo: string | null }> = {};
-  profs?.forEach((p) => (profilesMap[p.id] = { nome: p.nome, cargo: p.cargo }));
-
-  // Unidade
-  let unidadeNome: string | null = null;
-  if (ticket.unidade_id) {
-    const { data: u } = await supabase
-      .from("unidades")
-      .select("nome")
-      .eq("id", ticket.unidade_id)
-      .maybeSingle();
-    unidadeNome = u?.nome ?? null;
-  }
-
-  // Anexos do chamado (com signed URLs)
-  const { data: attsRaw } = await supabase
-    .from("livecare_ticket_attachments")
-    .select("id, ticket_id, autor_id, path, type, size, created_at")
-    .eq("ticket_id", id)
-    .order("created_at", { ascending: true });
-  const attachments = await attachTicketSignedUrls(
-    supabase,
-    (attsRaw ?? []) as TicketAttachment[]
+  profsRes.data?.forEach(
+    (p: { id: string; nome: string | null; cargo: string | null }) => {
+      profilesMap[p.id] = { nome: p.nome, cargo: p.cargo };
+    }
   );
+
+  const unidadeNome = unidadeRes.data?.nome ?? null;
 
   return (
     <TicketDetail
       ticket={ticket}
-      events={(events ?? []) as TicketEvent[]}
+      events={events}
       attachments={attachments}
       profiles={profilesMap}
       unidadeNome={unidadeNome}

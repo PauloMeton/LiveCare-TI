@@ -18,6 +18,45 @@ const TOAST_DURATION_MS = 6000;
 const TOAST_EVENT = "livecare:toast";
 
 /**
+ * Toca um "ping" curto via Web Audio API quando um toast aparece.
+ * - Sintetizado na hora (sem dependência de arquivo .mp3)
+ * - Volume bem baixo (não incomoda)
+ * - Falha silenciosa se o browser bloquear (autoplay policy antes da 1a interação)
+ */
+let audioCtx: AudioContext | null = null;
+function playNotificationSound() {
+  if (typeof window === "undefined") return;
+  try {
+    type AudioCtor = typeof AudioContext;
+    const Ctor: AudioCtor | undefined =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: AudioCtor }).webkitAudioContext;
+    if (!Ctor) return;
+
+    if (!audioCtx) audioCtx = new Ctor();
+    const ctx = audioCtx;
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.exponentialRampToValueAtTime(1320, now + 0.06);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.06, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  } catch {
+    // Browser bloqueou audio antes da 1a interação — ignora
+  }
+}
+
+/**
  * Helper pra disparar um toast de qualquer client component sem precisar de Context.
  * Uso: pushToast({ title: "Nova mensagem", href: "/chat" })
  */
@@ -50,13 +89,18 @@ export function Toaster() {
       if (!detail || !detail.title) return;
       const id = detail.id ?? crypto.randomUUID();
 
+      let added = false;
       setToasts((prev) => {
-        // Dedupe: se chegar dois iguais em 2s, só mostra o primeiro
+        // Dedupe: se chegar dois iguais em sequência, só mostra o primeiro
         if (prev.some((t) => t.title === detail.title && t.subtitle === detail.subtitle)) {
           return prev;
         }
+        added = true;
         return [...prev, { ...detail, id, title: detail.title }];
       });
+
+      // Só toca o som se o toast realmente entrou (não era duplicado)
+      if (added) playNotificationSound();
 
       // Auto-dismiss
       window.setTimeout(() => {

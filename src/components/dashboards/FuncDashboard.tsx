@@ -137,7 +137,7 @@ function MiniStat({ label, value, tone }: { label: string; value: number; tone: 
 
 function TicketCard({ ticket, unidades }: { ticket: Ticket; unidades: Record<number, string> }) {
   return (
-    <Link href={`/chamados/${ticket.id}`} className="block">
+    <Link href={`/chamados/${ticket.id}`} prefetch={true} className="block">
       <Card className="hover:border-graphite-300 transition-colors cursor-pointer">
         <div className="flex items-center justify-between mb-2">
           <ClassBadge classe={ticket.classe} />

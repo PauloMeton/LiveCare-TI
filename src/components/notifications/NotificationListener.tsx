@@ -30,8 +30,17 @@ function previewConteudo(c: string | null | undefined): string {
   return t.length > 80 ? t.slice(0, 80) + "…" : t;
 }
 
+// Log helper só no browser, prefixado pra ficar fácil de achar no DevTools
+function log(...args: unknown[]) {
+  if (typeof window !== "undefined") {
+    // eslint-disable-next-line no-console
+    console.log("[livecare-notif]", ...args);
+  }
+}
+
 export function NotificationListener({ currentUserId, isAdmin }: Props) {
   useEffect(() => {
+    log("init", { currentUserId, isAdmin });
     const supabase = createClient();
 
     // Cache de profiles pra mostrar nome no toast sem N+1
@@ -62,6 +71,7 @@ export function NotificationListener({ currentUserId, isAdmin }: Props) {
             "postgres_changes",
             { event: "INSERT", schema: "public", table: "livecare_tickets" },
             async (payload) => {
+              log("admin: novo chamado", payload.new);
               const t = payload.new as TicketRow;
               if (!t) return;
               const nome = await getNome(t.autor_id);
@@ -73,7 +83,7 @@ export function NotificationListener({ currentUserId, isAdmin }: Props) {
               });
             }
           )
-          .subscribe()
+          .subscribe((status) => log("ch:admin-novo-chamado", status))
       );
 
       // (2) Nova mensagem de qualquer funcionário (INSERT em livecare_messages onde autor != admin)
@@ -84,9 +94,9 @@ export function NotificationListener({ currentUserId, isAdmin }: Props) {
             "postgres_changes",
             { event: "INSERT", schema: "public", table: "livecare_messages" },
             async (payload) => {
+              log("admin: nova mensagem", payload.new);
               const m = payload.new as MessageRow;
               if (!m) return;
-              // Ignora mensagens que o próprio admin enviou
               if (m.autor_id === currentUserId) return;
               const nome = await getNome(m.autor_id);
               pushToast({
@@ -97,7 +107,7 @@ export function NotificationListener({ currentUserId, isAdmin }: Props) {
               });
             }
           )
-          .subscribe()
+          .subscribe((status) => log("ch:admin-novas-msgs", status))
       );
     } else {
       // --- FUNCIONÁRIO ---
@@ -116,6 +126,7 @@ export function NotificationListener({ currentUserId, isAdmin }: Props) {
               filter: `autor_id=eq.${currentUserId}`,
             },
             (payload) => {
+              log("user: update do meu chamado", payload.new, "old:", payload.old);
               const t = payload.new as TicketRow;
               const old = payload.old as Partial<TicketRow> | undefined;
               if (!t) return;
@@ -140,7 +151,7 @@ export function NotificationListener({ currentUserId, isAdmin }: Props) {
               }
             }
           )
-          .subscribe()
+          .subscribe((status) => log("ch:user-status-chamados", status))
       );
 
       // (4) Nova mensagem do admin no chat do funcionário
@@ -157,9 +168,10 @@ export function NotificationListener({ currentUserId, isAdmin }: Props) {
               filter: `conversa_id=eq.${currentUserId}`,
             },
             (payload) => {
+              log("user: nova mensagem no meu chat", payload.new);
               const m = payload.new as MessageRow;
               if (!m) return;
-              if (m.autor_id === currentUserId) return; // mensagem do próprio user
+              if (m.autor_id === currentUserId) return;
               pushToast({
                 title: "Nova mensagem do suporte",
                 subtitle: previewConteudo(m.conteudo),
@@ -168,11 +180,12 @@ export function NotificationListener({ currentUserId, isAdmin }: Props) {
               });
             }
           )
-          .subscribe()
+          .subscribe((status) => log("ch:user-novas-msgs", status))
       );
     }
 
     return () => {
+      log("cleanup", channels.length, "canais");
       channels.forEach((ch) => {
         supabase.removeChannel(ch);
       });

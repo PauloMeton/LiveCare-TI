@@ -6,10 +6,13 @@ import { AdminDashboard } from "@/components/dashboards/AdminDashboard";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const { user, profile } = await getCurrentUser();
-  const supabase = await createClient();
+  // Auth + supabase em paralelo
+  const [{ profile }, supabase] = await Promise.all([
+    getCurrentUser(),
+    createClient(),
+  ]);
 
-  // RLS já filtra (funcionário vê só os próprios, admin vê todos)
+  // RLS ja filtra (funcionario ve so os proprios, admin ve todos)
   const { data: tickets } = await supabase
     .from("livecare_tickets")
     .select(
@@ -17,45 +20,47 @@ export default async function DashboardPage() {
     )
     .order("created_at", { ascending: false });
 
-  // Pra admin: trazer nome do autor de cada ticket
-  let autores: Record<string, { nome: string | null; cargo: string | null }> = {};
-  let unidades: Record<number, string> = {};
-  if (profile.role === "admin" && tickets && tickets.length > 0) {
-    const autorIds = Array.from(new Set(tickets.map((t) => t.autor_id)));
-    const { data: profs } = await supabase
-      .from("profiles")
-      .select("id, nome, cargo")
-      .in("id", autorIds);
-    profs?.forEach((p) => (autores[p.id] = { nome: p.nome, cargo: p.cargo }));
+  const ts = tickets ?? [];
+  const isAdmin = profile.role === "admin";
 
-    const unidadeIds = Array.from(
-      new Set(tickets.map((t) => t.unidade_id).filter((x): x is number => x !== null))
-    );
-    if (unidadeIds.length) {
-      const { data: us } = await supabase.from("unidades").select("id, nome").in("id", unidadeIds);
-      us?.forEach((u) => (unidades[u.id] = u.nome));
-    }
-  } else if (tickets && tickets.length > 0) {
-    // Func: só busca nomes de unidades pros próprios tickets
-    const unidadeIds = Array.from(
-      new Set(tickets.map((t) => t.unidade_id).filter((x): x is number => x !== null))
-    );
-    if (unidadeIds.length) {
-      const { data: us } = await supabase.from("unidades").select("id, nome").in("id", unidadeIds);
-      us?.forEach((u) => (unidades[u.id] = u.nome));
-    }
-  }
+  // Coleta IDs unicos
+  const autorIds = isAdmin ? Array.from(new Set(ts.map((t) => t.autor_id))) : [];
+  const unidadeIds = Array.from(
+    new Set(ts.map((t) => t.unidade_id).filter((x): x is number => x !== null))
+  );
 
-  if (profile.role === "admin") {
+  // Profiles + unidades em paralelo
+  const [profsRes, unidadesRes] = await Promise.all([
+    autorIds.length
+      ? supabase.from("profiles").select("id, nome, cargo").in("id", autorIds)
+      : Promise.resolve({ data: null }),
+    unidadeIds.length
+      ? supabase.from("unidades").select("id, nome").in("id", unidadeIds)
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const autores: Record<string, { nome: string | null; cargo: string | null }> = {};
+  profsRes.data?.forEach(
+    (p: { id: string; nome: string | null; cargo: string | null }) => {
+      autores[p.id] = { nome: p.nome, cargo: p.cargo };
+    }
+  );
+
+  const unidades: Record<number, string> = {};
+  unidadesRes.data?.forEach((u: { id: number; nome: string }) => {
+    unidades[u.id] = u.nome;
+  });
+
+  if (isAdmin) {
     return (
       <AdminDashboard
         profile={profile}
-        tickets={tickets ?? []}
+        tickets={ts}
         autores={autores}
         unidades={unidades}
       />
     );
   }
 
-  return <FuncDashboard profile={profile} tickets={tickets ?? []} unidades={unidades} />;
+  return <FuncDashboard profile={profile} tickets={ts} unidades={unidades} />;
 }

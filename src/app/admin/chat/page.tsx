@@ -7,7 +7,6 @@ import { attachSignedUrls } from "@/lib/chatAttachments";
 
 export const dynamic = "force-dynamic";
 
-// UUID válido pra usar como filtro
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function AdminChatPage({
@@ -15,23 +14,23 @@ export default async function AdminChatPage({
 }: {
   searchParams: Promise<{ c?: string }>;
 }) {
-  const { user, profile } = await getCurrentUser();
+  // Auth + supabase + searchParams em paralelo
+  const [{ user, profile }, supabase, sp] = await Promise.all([
+    getCurrentUser(),
+    createClient(),
+    searchParams,
+  ]);
+
   if (profile.role !== "admin") redirect("/dashboard");
 
-  const supabase = await createClient();
-  const { c } = await searchParams;
+  const { c } = sp;
 
-  // Lista de conversas (admin only — RPC já valida)
   const { data: conversasData } = await supabase.rpc("livecare_list_conversas");
   const conversas = (conversasData ?? []) as ConversaListItem[];
 
-  // Conversa selecionada — usa ?c=<uuid> ou primeira da lista
   const selectedId =
-    c && UUID_RE.test(c)
-      ? c
-      : conversas[0]?.conversa_id ?? null;
+    c && UUID_RE.test(c) ? c : conversas[0]?.conversa_id ?? null;
 
-  // Mensagens da conversa selecionada
   let initialMessages: Message[] = [];
   if (selectedId) {
     const { data } = await supabase

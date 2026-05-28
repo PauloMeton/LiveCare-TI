@@ -10,11 +10,13 @@ import { attachSignedUrls } from "@/lib/chatAttachments";
 export const dynamic = "force-dynamic";
 
 export default async function ChatFuncionarioPage() {
-  const { user } = await getCurrentUser();
-  const supabase = await createClient();
+  // Auth + supabase em paralelo
+  const [{ user }, supabase] = await Promise.all([
+    getCurrentUser(),
+    createClient(),
+  ]);
 
-  // Funcionário: conversa_id = seu próprio user.id
-  // Pega as últimas 200 e ordena ASC pra exibir cronologicamente
+  // Funcionario: conversa_id = seu proprio user.id
   const { data: rows } = await supabase
     .from("livecare_messages")
     .select(
@@ -30,14 +32,14 @@ export default async function ChatFuncionarioPage() {
 
   return (
     <div className="h-screen flex flex-col bg-graphite-50">
-      {/* Header */}
       <header className="bg-white border-b border-graphite-200 px-4 py-3 flex items-center gap-3 flex-shrink-0">
         <Link
           href="/dashboard"
+          prefetch={true}
           className="text-graphite-900 text-xl leading-none"
           aria-label="Voltar"
         >
-          ←
+          {"←"}
         </Link>
         <BrandLockup size={28} />
         <div className="ml-1 flex flex-col leading-tight">
@@ -46,7 +48,6 @@ export default async function ChatFuncionarioPage() {
         </div>
       </header>
 
-      {/* Thread (ocupa o resto da tela) */}
       <div className="flex-1 min-h-0 pb-16">
         <MessagesThread
           conversaId={user.id}

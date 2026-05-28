@@ -20,6 +20,7 @@ export function MobileBottomNav({ active }: Props) {
           <Link
             key={i.id}
             href={i.href}
+            prefetch={true}
             className={`flex flex-col items-center gap-1 px-3 py-1 text-[11px] font-medium ${
               isActive ? "text-graphite-900" : "text-graphite-500"
             }`}
