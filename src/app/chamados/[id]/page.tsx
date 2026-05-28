@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 import { TicketDetail } from "@/components/tickets/TicketDetail";
-import type { Ticket, TicketEvent } from "@/lib/types";
+import type { Ticket, TicketEvent, TicketAttachment } from "@/lib/types";
+import { attachTicketSignedUrls } from "@/lib/ticketAttachments";
 
 export const dynamic = "force-dynamic";
 
@@ -58,10 +59,22 @@ export default async function ChamadoDetailPage({
     unidadeNome = u?.nome ?? null;
   }
 
+  // Anexos do chamado (com signed URLs)
+  const { data: attsRaw } = await supabase
+    .from("livecare_ticket_attachments")
+    .select("id, ticket_id, autor_id, path, type, size, created_at")
+    .eq("ticket_id", id)
+    .order("created_at", { ascending: true });
+  const attachments = await attachTicketSignedUrls(
+    supabase,
+    (attsRaw ?? []) as TicketAttachment[]
+  );
+
   return (
     <TicketDetail
       ticket={ticket}
       events={(events ?? []) as TicketEvent[]}
+      attachments={attachments}
       profiles={profilesMap}
       unidadeNome={unidadeNome}
       currentUserId={user.id}

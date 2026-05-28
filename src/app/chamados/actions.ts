@@ -8,13 +8,17 @@ import {
   UpdateTicketSchema,
   RejectTicketSchema,
   UuidSchema,
+  AddTicketAttachmentSchema,
+  TicketAttachmentIdSchema,
   firstZodMessage,
   type CreateTicketInput,
   type UpdateTicketInput,
   type RejectTicketInput,
+  type AddTicketAttachmentInput,
 } from "@/lib/schemas";
 import type { TicketEventTipo } from "@/lib/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { TICKET_ATTACHMENTS_BUCKET } from "@/lib/ticketAttachments";
 
 /** Insere um event de auditoria. */
 async function insertEvent(
@@ -203,6 +207,77 @@ export async function reopenTicket(ticketId: string) {
 
   revalidatePath("/dashboard");
   revalidatePath(`/chamados/${parsed.data}`);
+  return { ok: true };
+}
+
+/* ============================================================
+   ANEXOS DE CHAMADOS
+   ============================================================ */
+
+/**
+ * Registra um anexo de chamado. Pré-requisito: o arquivo já foi feito upload
+ * pelo client no bucket `livecare-tickets` em `<ticketId>/<uuid>.<ext>`.
+ *
+ * RLS já garante que só o autor do chamado (ou admin) consegue inserir.
+ */
+export async function addTicketAttachment(input: AddTicketAttachmentInput) {
+  const parsed = AddTicketAttachmentSchema.safeParse(input);
+  if (!parsed.success) return { error: firstZodMessage(parsed.error) };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autenticado" };
+
+  const v = parsed.data;
+  const { error } = await supabase.from("livecare_ticket_attachments").insert({
+    ticket_id: v.ticketId,
+    autor_id: user.id,
+    path: v.path,
+    type: v.type,
+    size: v.size,
+  });
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/chamados/${v.ticketId}`);
+  return { ok: true };
+}
+
+/** Remove um anexo (apenas o próprio autor do anexo ou admin — RLS valida). */
+export async function removeTicketAttachment(attachmentId: number) {
+  const parsed = TicketAttachmentIdSchema.safeParse(attachmentId);
+  if (!parsed.success) return { error: firstZodMessage(parsed.error) };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autenticado" };
+
+  // Pega o registro primeiro pra saber o path (pra limpar do Storage depois)
+  const { data: att, error: selErr } = await supabase
+    .from("livecare_ticket_attachments")
+    .select("id, ticket_id, path")
+    .eq("id", parsed.data)
+    .maybeSingle<{ id: number; ticket_id: string; path: string }>();
+
+  if (selErr) return { error: selErr.message };
+  if (!att) return { error: "Anexo não encontrado." };
+
+  // Apaga o registro (RLS garante permissão)
+  const { error: delErr } = await supabase
+    .from("livecare_ticket_attachments")
+    .delete()
+    .eq("id", parsed.data);
+
+  if (delErr) return { error: delErr.message };
+
+  // Best-effort: remove o arquivo do Storage
+  await supabase.storage.from(TICKET_ATTACHMENTS_BUCKET).remove([att.path]);
+
+  revalidatePath(`/chamados/${att.ticket_id}`);
   return { ok: true };
 }
 

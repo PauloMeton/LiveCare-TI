@@ -137,6 +137,25 @@ export const MessageIdSchema = z
   .int()
   .positive();
 
+/* ============================================================
+   ANEXOS DE CHAMADOS
+   ============================================================ */
+
+/** Anexar arquivo a um chamado (após upload no Storage). */
+export const AddTicketAttachmentSchema = z.object({
+  ticketId: UuidSchema,
+  path: z.string().min(1).max(500),
+  type: z.enum(["image", "video"]),
+  size: z.number().int().positive().max(26214400, "Arquivo passa de 25MB."),
+});
+export type AddTicketAttachmentInput = z.infer<typeof AddTicketAttachmentSchema>;
+
+/** ID numérico de anexo de chamado (PK da tabela). */
+export const TicketAttachmentIdSchema = z
+  .number({ required_error: "Identificador inválido." })
+  .int()
+  .positive();
+
 /** Helper: converte ZodError em string única pra UI. */
 export function firstZodMessage(err: z.ZodError): string {
   return err.issues[0]?.message ?? "Dados inválidos.";

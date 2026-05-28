@@ -92,3 +92,20 @@ export type ConversaListItem = {
   last_autor_id: string;
   nao_lidas: number;
 };
+
+/* ============================================================
+   ANEXOS DE CHAMADOS
+   ============================================================ */
+
+/** Anexo de chamado (livecare_ticket_attachments). */
+export type TicketAttachment = {
+  id: number;
+  ticket_id: string;
+  autor_id: string;
+  path: string;
+  type: AttachmentType;
+  size: number;
+  created_at: string;
+  // Virtual: signed URL gerada na hora do fetch (não é coluna do DB)
+  url?: string | null;
+};

@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import type { Ticket, TicketEvent, TicketEventTipo } from "@/lib/types";
+import type {
+  Ticket,
+  TicketEvent,
+  TicketEventTipo,
+  TicketAttachment,
+} from "@/lib/types";
 import { BrandLockup } from "@/components/ui/BrandLockup";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -13,6 +18,7 @@ import { Pill } from "@/components/ui/Pill";
 import { Field, Textarea } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { RealtimeRefresher } from "@/components/realtime/RealtimeRefresher";
+import { TicketAttachments } from "@/components/tickets/TicketAttachments";
 import {
   concluirTicket,
   setEmAndamento,
@@ -24,6 +30,7 @@ import {
 type Props = {
   ticket: Ticket;
   events: TicketEvent[];
+  attachments: TicketAttachment[];
   profiles: Record<string, { nome: string | null; cargo: string | null }>;
   unidadeNome: string | null;
   currentUserId: string;
@@ -55,6 +62,7 @@ const eventoConfig: Record<TicketEventTipo, { label: string; color: string }> = 
 export function TicketDetail({
   ticket,
   events,
+  attachments,
   profiles,
   unidadeNome,
   currentUserId,
@@ -66,6 +74,8 @@ export function TicketDetail({
     ticket.status === "concluido" ||
     ticket.status === "cancelado" ||
     ticket.status === "rejeitado";
+  // Quem pode anexar: autor enquanto o chamado estiver aberto, ou admin sempre
+  const canEditAttachments = (isAutor && isOpen) || isAdmin;
 
   const autor = profiles[ticket.autor_id];
 
@@ -123,6 +133,11 @@ export function TicketDetail({
             table: "livecare_ticket_events",
             filter: `ticket_id=eq.${ticket.id}`,
           },
+          {
+            channel: `ticket-attachments-${ticket.id}`,
+            table: "livecare_ticket_attachments",
+            filter: `ticket_id=eq.${ticket.id}`,
+          },
         ]}
       />
 
@@ -177,6 +192,16 @@ export function TicketDetail({
               <div className="text-sm text-graphite-700 whitespace-pre-wrap">{ticket.observacao}</div>
             </div>
           )}
+        </Card>
+
+        {/* Anexos */}
+        <Card className="mb-4">
+          <TicketAttachments
+            ticketId={ticket.id}
+            attachments={attachments}
+            canEdit={canEditAttachments}
+            currentUserId={currentUserId}
+          />
         </Card>
 
         {/* Linha do tempo */}
