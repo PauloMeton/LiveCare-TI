@@ -30,9 +30,14 @@ function previewConteudo(c: string | null | undefined): string {
   return t.length > 80 ? t.slice(0, 80) + "…" : t;
 }
 
-// Log helper só no browser, prefixado pra ficar fácil de achar no DevTools
+// Log helper só no browser. Em produção fica silencioso por padrão.
+// Pra debugar em produção, seta NEXT_PUBLIC_LIVECARE_DEBUG=1 na Vercel.
+const DEBUG =
+  typeof window !== "undefined" &&
+  (process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_LIVECARE_DEBUG === "1");
+
 function log(...args: unknown[]) {
-  if (typeof window !== "undefined") {
+  if (DEBUG) {
     // eslint-disable-next-line no-console
     console.log("[livecare-notif]", ...args);
   }

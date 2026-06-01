@@ -31,6 +31,7 @@ git commit -m "feat: MVP do LiveCare TI"
 ```
 
 Depois crie o repositório no GitHub (https://github.com/new):
+
 - Nome: `livecare-ti` (ou o que preferir)
 - **Privado** (recomendado — é sistema interno da Live Academia)
 - **Sem** README/.gitignore/license (já temos)
@@ -64,13 +65,13 @@ git push
 
 A Vercel detecta Next.js automaticamente. Os defaults estão certos:
 
-| Campo | Valor |
-|---|---|
-| Framework Preset | Next.js |
-| Build Command | `next build` (deixa o default) |
-| Output Directory | `.next` (deixa o default) |
-| Install Command | `npm install` (deixa o default) |
-| Root Directory | `./` (deixa o default) |
+| Campo            | Valor                           |
+| ---------------- | ------------------------------- |
+| Framework Preset | Next.js                         |
+| Build Command    | `next build` (deixa o default)  |
+| Output Directory | `.next` (deixa o default)       |
+| Install Command  | `npm install` (deixa o default) |
+| Root Directory   | `./` (deixa o default)          |
 
 ### ⚠ Variáveis de ambiente — **NÃO DEIXE EM BRANCO**
 
@@ -137,6 +138,7 @@ Abra a URL da Vercel no navegador:
 - [ ] Logout funciona
 
 Se algum desses falhar, verifique:
+
 - Console do navegador (F12 → Console) — erros JS
 - Aba **Logs** no painel da Vercel — erros server-side
 
@@ -201,3 +203,37 @@ Quando estiver pronto pra ter um `livecare.liveacademia.com.br` ou similar:
 - **Supabase Free**: 500 MB de DB, 50.000 MAU. Suficiente pra Live Academia testar.
 
 Quando crescer e precisar mais, dá pra escalar pra Vercel Pro ($20/mês/membro) e Supabase Pro ($25/mês).
+
+---
+
+## Anexo: Sentry (monitoring de erros em producao)
+
+O app vem com Sentry pre-configurado, mas so liga se a env var `NEXT_PUBLIC_SENTRY_DSN` estiver setada. Sem ela, o build segue normal e nenhum dado eh enviado.
+
+**Como ativar (5 minutos):**
+
+1. Cria conta gratis em https://sentry.io (free tier: 5k erros/mes — sobra)
+2. Cria um projeto **Next.js**
+3. Copia o DSN (formato: `https://abc123@o12345.ingest.us.sentry.io/123456`)
+4. Na Vercel → Project Settings → Environment Variables, adiciona:
+
+   | Nome                     | Valor                             | Ambientes            |
+   | ------------------------ | --------------------------------- | -------------------- |
+   | `NEXT_PUBLIC_SENTRY_DSN` | (o DSN copiado)                   | Production + Preview |
+   | `SENTRY_ORG`             | (slug da org no Sentry, opcional) | Production           |
+   | `SENTRY_PROJECT`         | (slug do projeto, opcional)       | Production           |
+
+5. Re-deploy (push qualquer commit ou clique em "Redeploy").
+
+A partir daí, todo erro JavaScript em produção aparece no dashboard do Sentry com stack trace, breadcrumbs, e contexto do usuário.
+
+**Filtros já configurados (em `sentry.client.config.ts`):**
+
+- Não envia erros em `NODE_ENV !== "production"` (dev local não conta)
+- Ignora `NotAllowedError` (autoplay de som bloqueado — esperado)
+- Ignora `ResizeObserver loop limit exceeded` (ruído de browser)
+- Sample rate de performance em 10% (free tier nao quebra)
+
+**Pra debugar logs do `[livecare-notif]` em producao:**
+
+Adiciona a env var `NEXT_PUBLIC_LIVECARE_DEBUG=1` na Vercel temporariamente. Os logs voltam a aparecer no Console do browser. Depois remove pra silenciar.
