@@ -9,6 +9,7 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { BrandLockup } from "@/components/ui/BrandLockup";
 import { Input, Select } from "@/components/ui/Field";
 import { RealtimeRefresher } from "@/components/realtime/RealtimeRefresher";
+import { SlaPill } from "@/components/tickets/SlaPill";
 
 export function AdminDashboard({
   profile,
@@ -44,13 +45,13 @@ export function AdminDashboard({
   }, [tickets, filterClasse, filterStatus, filterDate, query, autores]);
 
   const stats = {
-    aberto:    tickets.filter((t) => t.status === "aberto").length,
+    aberto: tickets.filter((t) => t.status === "aberto").length,
     andamento: tickets.filter((t) => t.status === "andamento").length,
     concluido: tickets.filter((t) => t.status === "concluido").length,
   };
 
   return (
-    <div className="min-h-screen flex bg-graphite-50">
+    <div className="flex min-h-screen bg-graphite-50">
       {/* Realtime — qualquer mudança em chamados re-renderiza o painel */}
       <RealtimeRefresher
         subs={[
@@ -61,36 +62,38 @@ export function AdminDashboard({
       />
 
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-graphite-200 flex flex-col">
-        <div className="px-5 py-5 border-b border-graphite-200">
+      <aside className="flex w-64 flex-col border-r border-graphite-200 bg-white">
+        <div className="border-b border-graphite-200 px-5 py-5">
           <BrandLockup size={36} />
         </div>
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
+        <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
           <SidebarItem active label="Chamados" href="/dashboard" />
           <SidebarItem label="Usuários" href="/admin/usuarios" />
           <SidebarItem label="Chat" href="/admin/chat" />
           <SidebarItem label="Analytics" href="/admin/analytics" />
           <SidebarItem label="Meu perfil" href="/perfil" />
         </nav>
-        <div className="px-3 py-3 border-t border-graphite-200">
-          <div className="px-3 py-2 mb-2 text-[12px] text-graphite-600">
+        <div className="border-t border-graphite-200 px-3 py-3">
+          <div className="mb-2 px-3 py-2 text-[12px] text-graphite-600">
             <div className="font-semibold text-graphite-900">{profile.nome}</div>
             <div className="text-[11px] text-gold-700">Suporte TI · Admin</div>
           </div>
           <form action="/logout" method="POST">
-            <Button variant="ghost" full size="sm" type="submit">Sair</Button>
+            <Button variant="ghost" full size="sm" type="submit">
+              Sair
+            </Button>
           </form>
         </div>
       </aside>
 
       {/* Conteúdo */}
-      <main className="flex-1 overflow-auto p-8 max-w-[1400px]">
-        <div className="flex items-start justify-between gap-4 mb-6">
+      <main className="max-w-[1400px] flex-1 overflow-auto p-8">
+        <div className="mb-6 flex items-start justify-between gap-4">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-gold-600 mb-1">
+            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-gold-600">
               Suporte TI · Painel
             </div>
-            <h1 className="text-3xl font-bold text-graphite-900 tracking-tight mb-1">
+            <h1 className="mb-1 text-3xl font-bold tracking-tight text-graphite-900">
               Gerenciamento de chamados
             </h1>
             <p className="text-sm text-graphite-500">
@@ -108,10 +111,10 @@ export function AdminDashboard({
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <StatCard label="Abertos"      value={stats.aberto}    tone="warn" />
+        <div className="mb-6 grid grid-cols-3 gap-4">
+          <StatCard label="Abertos" value={stats.aberto} tone="warn" />
           <StatCard label="Em andamento" value={stats.andamento} tone="info" />
-          <StatCard label="Concluídos"   value={stats.concluido} tone="success" />
+          <StatCard label="Concluídos" value={stats.concluido} tone="success" />
         </div>
 
         {/* Filtros */}
@@ -127,7 +130,10 @@ export function AdminDashboard({
             </div>
             <div>
               <label className="text-[12px] font-medium text-graphite-600">Classe</label>
-              <Select value={filterClasse} onChange={(e) => setFilterClasse(e.target.value as typeof filterClasse)}>
+              <Select
+                value={filterClasse}
+                onChange={(e) => setFilterClasse(e.target.value as typeof filterClasse)}
+              >
                 <option value="todas">Todas</option>
                 <option value="RH">RH</option>
                 <option value="Financeiro">Financeiro</option>
@@ -136,7 +142,10 @@ export function AdminDashboard({
             </div>
             <div>
               <label className="text-[12px] font-medium text-graphite-600">Status</label>
-              <Select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}>
+              <Select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
+              >
                 <option value="todos">Todos</option>
                 <option value="aberto">Aberto</option>
                 <option value="andamento">Em andamento</option>
@@ -160,7 +169,7 @@ export function AdminDashboard({
         {/* Lista */}
         {filtered.length === 0 ? (
           <Card>
-            <div className="text-center py-10 text-graphite-500">
+            <div className="py-10 text-center text-graphite-500">
               Nenhum chamado encontrado com esses filtros.
             </div>
           </Card>
@@ -198,8 +207,8 @@ function SidebarItem({
     active
       ? "bg-graphite-900 text-white"
       : disabled
-      ? "text-graphite-400 cursor-not-allowed"
-      : "text-graphite-700 hover:bg-graphite-100 cursor-pointer"
+        ? "text-graphite-400 cursor-not-allowed"
+        : "text-graphite-700 hover:bg-graphite-100 cursor-pointer"
   }`;
   const content = (
     <>
@@ -217,16 +226,24 @@ function SidebarItem({
   return <div className={cls}>{content}</div>;
 }
 
-function StatCard({ label, value, tone }: { label: string; value: number; tone: "warn" | "info" | "success" }) {
+function StatCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "warn" | "info" | "success";
+}) {
   const toneClasses = {
-    warn:    "bg-gold-50 border-gold-200 text-gold-700",
-    info:    "bg-white border-graphite-200 text-graphite-700",
+    warn: "bg-gold-50 border-gold-200 text-gold-700",
+    info: "bg-white border-graphite-200 text-graphite-700",
     success: "bg-emerald-50 border-emerald-100 text-emerald-700",
   };
   return (
     <div className={`rounded-lg border p-4 ${toneClasses[tone]}`}>
-      <div className="text-[11px] uppercase tracking-wider font-semibold">{label}</div>
-      <div className="text-3xl font-bold mt-2 leading-none text-graphite-900">{value}</div>
+      <div className="text-[11px] font-semibold uppercase tracking-wider">{label}</div>
+      <div className="mt-2 text-3xl font-bold leading-none text-graphite-900">{value}</div>
     </div>
   );
 }
@@ -243,39 +260,45 @@ function AdminTicketCard({
   return (
     <Link href={`/chamados/${ticket.id}`} prefetch={true} className="block">
       <Card
-        className={`hover:border-graphite-300 transition-colors cursor-pointer ${
-          ticket.status === "concluido" || ticket.status === "cancelado" || ticket.status === "rejeitado"
+        className={`cursor-pointer transition-colors hover:border-graphite-300 ${
+          ticket.status === "concluido" ||
+          ticket.status === "cancelado" ||
+          ticket.status === "rejeitado"
             ? "opacity-60"
             : ""
         }`}
       >
-        <div className="flex items-start justify-between mb-3">
+        <div className="mb-3 flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div>
               <div className="font-semibold text-graphite-900">{autor?.nome ?? "—"}</div>
               <div className="text-xs text-graphite-500">
-                {unidadeNome ?? "Sem unidade"} · {new Date(ticket.created_at).toLocaleString("pt-BR")}
+                {unidadeNome ?? "Sem unidade"} ·{" "}
+                {new Date(ticket.created_at).toLocaleString("pt-BR")}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <ClassBadge classe={ticket.classe} />
             <StatusPill status={ticket.status} />
+            <SlaPill ticket={ticket} />
           </div>
         </div>
 
-        <div className="font-semibold text-graphite-900 mb-2">{ticket.titulo}</div>
+        <div className="mb-2 font-semibold text-graphite-900">{ticket.titulo}</div>
 
-        <div className="bg-graphite-50 rounded-md p-3 text-[13px] text-graphite-700 grid grid-cols-2 gap-y-1 gap-x-4">
-          {Object.entries(ticket.campos).slice(0, 4).map(([k, v]) => (
-            <div key={k}>
-              <span className="text-graphite-500">{k}:</span> {v}
-            </div>
-          ))}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-md bg-graphite-50 p-3 text-[13px] text-graphite-700">
+          {Object.entries(ticket.campos)
+            .slice(0, 4)
+            .map(([k, v]) => (
+              <div key={k}>
+                <span className="text-graphite-500">{k}:</span> {v}
+              </div>
+            ))}
         </div>
 
         {(ticket.status === "aberto" || ticket.status === "andamento") && (
-          <div className="mt-3 text-xs text-gold-700 font-medium">
+          <div className="mt-3 text-xs font-medium text-gold-700">
             Clique para ver detalhes e atender →
           </div>
         )}

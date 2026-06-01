@@ -2,12 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import type {
-  Ticket,
-  TicketEvent,
-  TicketEventTipo,
-  TicketAttachment,
-} from "@/lib/types";
+import type { Ticket, TicketEvent, TicketEventTipo, TicketAttachment } from "@/lib/types";
 import { BrandLockup } from "@/components/ui/BrandLockup";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -19,6 +14,7 @@ import { Field, Textarea } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { RealtimeRefresher } from "@/components/realtime/RealtimeRefresher";
 import { TicketAttachments } from "@/components/tickets/TicketAttachments";
+import { SlaPill } from "@/components/tickets/SlaPill";
 import {
   concluirTicket,
   setEmAndamento,
@@ -49,14 +45,14 @@ const prioridadeTone: Record<Ticket["prioridade"], "neutral" | "warn" | "danger"
 };
 
 const eventoConfig: Record<TicketEventTipo, { label: string; color: string }> = {
-  aberto:     { label: "Chamado aberto",       color: "var(--gold-500)" },
-  editado:    { label: "Editado pelo autor",   color: "var(--graphite-400)" },
-  andamento:  { label: "Em andamento",         color: "var(--graphite-700)" },
-  concluido:  { label: "Concluído",            color: "#0e8a4a" },
-  reaberto:   { label: "Reaberto",             color: "var(--gold-600)" },
-  rejeitado:  { label: "Rejeitado",            color: "#b8392c" },
-  cancelado:  { label: "Cancelado pelo autor", color: "var(--graphite-500)" },
-  comentario: { label: "Comentário",           color: "var(--graphite-400)" },
+  aberto: { label: "Chamado aberto", color: "var(--gold-500)" },
+  editado: { label: "Editado pelo autor", color: "var(--graphite-400)" },
+  andamento: { label: "Em andamento", color: "var(--graphite-700)" },
+  concluido: { label: "Concluído", color: "#0e8a4a" },
+  reaberto: { label: "Reaberto", color: "var(--gold-600)" },
+  rejeitado: { label: "Rejeitado", color: "#b8392c" },
+  cancelado: { label: "Cancelado pelo autor", color: "var(--graphite-500)" },
+  comentario: { label: "Comentário", color: "var(--graphite-400)" },
 };
 
 export function TicketDetail({
@@ -71,9 +67,7 @@ export function TicketDetail({
   const isAutor = ticket.autor_id === currentUserId;
   const isOpen = ticket.status === "aberto";
   const isClosed =
-    ticket.status === "concluido" ||
-    ticket.status === "cancelado" ||
-    ticket.status === "rejeitado";
+    ticket.status === "concluido" || ticket.status === "cancelado" || ticket.status === "rejeitado";
   // Quem pode anexar: autor enquanto o chamado estiver aberto, ou admin sempre
   const canEditAttachments = (isAutor && isOpen) || isAdmin;
 
@@ -84,7 +78,10 @@ export function TicketDetail({
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [motivo, setMotivo] = useState("");
 
-  function runAction(fn: () => Promise<{ error?: string; ok?: boolean } | undefined>, confirmMsg?: string) {
+  function runAction(
+    fn: () => Promise<{ error?: string; ok?: boolean } | undefined>,
+    confirmMsg?: string
+  ) {
     setError(null);
     if (confirmMsg && !confirm(confirmMsg)) return;
     startTransition(async () => {
@@ -141,34 +138,42 @@ export function TicketDetail({
         ]}
       />
 
-      <header className="sticky top-0 z-10 bg-white border-b border-graphite-200 px-4 py-3 flex items-center gap-3">
-        <Link href="/dashboard" className="text-graphite-900 text-xl leading-none">←</Link>
+      <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-graphite-200 bg-white px-4 py-3">
+        <Link href="/dashboard" className="text-xl leading-none text-graphite-900">
+          ←
+        </Link>
         <BrandLockup size={28} />
         <span className="ml-2 text-sm font-semibold text-graphite-700">Detalhe do chamado</span>
       </header>
 
-      <main className="px-4 py-6 max-w-3xl mx-auto">
+      <main className="mx-auto max-w-3xl px-4 py-6">
         {/* Header card */}
         <Card className="mb-4">
-          <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <ClassBadge classe={ticket.classe} />
               <StatusPill status={ticket.status} />
               <Pill tone={prioridadeTone[ticket.prioridade]}>
                 Prioridade {prioridadeLabel[ticket.prioridade]}
               </Pill>
+              <SlaPill ticket={ticket} variant="full" />
             </div>
-            <div className="text-xs text-graphite-500 font-mono">#{ticket.id.slice(0, 8)}</div>
+            <div className="font-mono text-xs text-graphite-500">#{ticket.id.slice(0, 8)}</div>
           </div>
 
-          <h1 className="text-xl font-bold text-graphite-900 leading-tight mb-3">{ticket.titulo}</h1>
+          <h1 className="mb-3 text-xl font-bold leading-tight text-graphite-900">
+            {ticket.titulo}
+          </h1>
 
-          <div className="flex items-center gap-3 pt-3 border-t border-graphite-100">
+          <div className="flex items-center gap-3 border-t border-graphite-100 pt-3">
             <Avatar name={autor?.nome ?? "?"} size={36} color="var(--gold-100, #fff3b0)" />
             <div className="min-w-0">
-              <div className="text-sm font-semibold text-graphite-900 truncate">{autor?.nome ?? "—"}</div>
-              <div className="text-xs text-graphite-500 truncate">
-                {[autor?.cargo, unidadeNome].filter(Boolean).join(" · ") || "Sem informações adicionais"}
+              <div className="truncate text-sm font-semibold text-graphite-900">
+                {autor?.nome ?? "—"}
+              </div>
+              <div className="truncate text-xs text-graphite-500">
+                {[autor?.cargo, unidadeNome].filter(Boolean).join(" · ") ||
+                  "Sem informações adicionais"}
               </div>
             </div>
           </div>
@@ -176,20 +181,24 @@ export function TicketDetail({
 
         {/* Campos */}
         <Card className="mb-4">
-          <h2 className="text-sm font-semibold text-graphite-900 mb-3">Informações do chamado</h2>
-          <dl className="bg-graphite-50 rounded-md p-3 text-[13px] grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-6">
+          <h2 className="mb-3 text-sm font-semibold text-graphite-900">Informações do chamado</h2>
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-2 rounded-md bg-graphite-50 p-3 text-[13px] sm:grid-cols-2">
             {Object.entries(ticket.campos).map(([k, v]) => (
               <div key={k} className="flex flex-col">
-                <dt className="text-graphite-500 text-[11px] uppercase tracking-wide">{k}</dt>
+                <dt className="text-[11px] uppercase tracking-wide text-graphite-500">{k}</dt>
                 <dd className="text-graphite-900">{v || "—"}</dd>
               </div>
             ))}
           </dl>
 
           {ticket.observacao && (
-            <div className="mt-4 pt-4 border-t border-graphite-100">
-              <div className="text-[11px] text-graphite-500 uppercase tracking-wide mb-1">Observação</div>
-              <div className="text-sm text-graphite-700 whitespace-pre-wrap">{ticket.observacao}</div>
+            <div className="mt-4 border-t border-graphite-100 pt-4">
+              <div className="mb-1 text-[11px] uppercase tracking-wide text-graphite-500">
+                Observação
+              </div>
+              <div className="whitespace-pre-wrap text-sm text-graphite-700">
+                {ticket.observacao}
+              </div>
             </div>
           )}
         </Card>
@@ -206,32 +215,34 @@ export function TicketDetail({
 
         {/* Linha do tempo */}
         <Card className="mb-4">
-          <h2 className="text-sm font-semibold text-graphite-900 mb-3">Linha do tempo</h2>
+          <h2 className="mb-3 text-sm font-semibold text-graphite-900">Linha do tempo</h2>
           {events.length === 0 ? (
             <div className="text-sm text-graphite-500">Sem eventos registrados.</div>
           ) : (
-            <ul className="text-[13px] text-graphite-700 space-y-3">
+            <ul className="space-y-3 text-[13px] text-graphite-700">
               {events.map((ev) => {
                 const cfg = eventoConfig[ev.tipo];
                 const ator = ev.ator_id ? profiles[ev.ator_id] : null;
-                const motivoEv = (ev.detalhes as Record<string, unknown>)?.motivo as string | undefined;
+                const motivoEv = (ev.detalhes as Record<string, unknown>)?.motivo as
+                  | string
+                  | undefined;
                 return (
                   <li key={ev.id} className="flex items-start gap-2.5">
                     <span
-                      className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
+                      className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full"
                       style={{ background: cfg.color }}
                     />
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="font-medium text-graphite-900">
                         {cfg.label}
                         {ator?.nome ? ` · ${ator.nome}` : ""}
                       </div>
-                      <div className="text-graphite-500 text-xs">
+                      <div className="text-xs text-graphite-500">
                         {new Date(ev.created_at).toLocaleString("pt-BR", dateOpts)}
                       </div>
                       {motivoEv && (
-                        <div className="mt-1 text-[13px] text-graphite-700 bg-danger-50 border border-danger-50 rounded-md px-2.5 py-1.5">
-                          <span className="text-danger-700 font-medium">Motivo:</span> {motivoEv}
+                        <div className="mt-1 rounded-md border border-danger-50 bg-danger-50 px-2.5 py-1.5 text-[13px] text-graphite-700">
+                          <span className="font-medium text-danger-700">Motivo:</span> {motivoEv}
                         </div>
                       )}
                     </div>
@@ -243,17 +254,22 @@ export function TicketDetail({
         </Card>
 
         {error && (
-          <div className="text-sm text-danger-700 bg-danger-50 border border-danger-50 rounded-md px-3 py-2 mb-4">
+          <div className="mb-4 rounded-md border border-danger-50 bg-danger-50 px-3 py-2 text-sm text-danger-700">
             {error}
           </div>
         )}
 
         {/* Ações do funcionário (autor) */}
         {isAutor && isOpen && (
-          <div className="flex flex-wrap gap-2 justify-end">
+          <div className="flex flex-wrap justify-end gap-2">
             <Button
               variant="danger"
-              onClick={() => runAction(() => cancelTicket(ticket.id), "Cancelar este chamado? Esta ação não pode ser desfeita.")}
+              onClick={() =>
+                runAction(
+                  () => cancelTicket(ticket.id),
+                  "Cancelar este chamado? Esta ação não pode ser desfeita."
+                )
+              }
               disabled={pending}
             >
               Cancelar chamado
@@ -266,9 +282,13 @@ export function TicketDetail({
 
         {/* Ações do admin */}
         {isAdmin && !isClosed && (
-          <div className="flex flex-wrap gap-2 justify-end">
+          <div className="flex flex-wrap justify-end gap-2">
             {ticket.status === "aberto" && (
-              <Button variant="secondary" onClick={() => runAction(() => setEmAndamento(ticket.id))} disabled={pending}>
+              <Button
+                variant="secondary"
+                onClick={() => runAction(() => setEmAndamento(ticket.id))}
+                disabled={pending}
+              >
                 Marcar em andamento
               </Button>
             )}
@@ -285,7 +305,9 @@ export function TicketDetail({
             </Button>
             <Button
               variant="success"
-              onClick={() => runAction(() => concluirTicket(ticket.id), "Marcar este chamado como concluído?")}
+              onClick={() =>
+                runAction(() => concluirTicket(ticket.id), "Marcar este chamado como concluído?")
+              }
               disabled={pending}
             >
               {pending ? "Salvando…" : "✓ Concluído"}
@@ -308,7 +330,7 @@ export function TicketDetail({
 
         {/* Funcionário sem ações disponíveis */}
         {isAutor && !isOpen && !isAdmin && (
-          <div className="text-xs text-graphite-500 text-center mt-2">
+          <div className="mt-2 text-center text-xs text-graphite-500">
             Este chamado não pode mais ser alterado.
           </div>
         )}
@@ -333,12 +355,16 @@ export function TicketDetail({
             />
           </Field>
           {error && (
-            <div className="text-sm text-danger-700 bg-danger-50 border border-danger-50 rounded-md px-3 py-2">
+            <div className="rounded-md border border-danger-50 bg-danger-50 px-3 py-2 text-sm text-danger-700">
               {error}
             </div>
           )}
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="secondary" onClick={() => setShowRejectModal(false)} disabled={pending}>
+            <Button
+              variant="secondary"
+              onClick={() => setShowRejectModal(false)}
+              disabled={pending}
+            >
               Cancelar
             </Button>
             <Button variant="danger" onClick={submitReject} disabled={pending}>

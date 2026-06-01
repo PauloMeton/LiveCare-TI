@@ -9,6 +9,7 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { BrandLockup } from "@/components/ui/BrandLockup";
 import { MobileBottomNav } from "@/components/nav/MobileBottomNav";
 import { RealtimeRefresher } from "@/components/realtime/RealtimeRefresher";
+import { SlaPill } from "@/components/tickets/SlaPill";
 
 const filtros: Array<{ id: "todos" | "aberto" | "andamento" | "concluido"; label: string }> = [
   { id: "todos", label: "Todos" },
@@ -30,13 +31,13 @@ export function FuncDashboard({
   const filtered = filter === "todos" ? tickets : tickets.filter((t) => t.status === filter);
 
   const stats = {
-    aberto:    tickets.filter((t) => t.status === "aberto").length,
+    aberto: tickets.filter((t) => t.status === "aberto").length,
     andamento: tickets.filter((t) => t.status === "andamento").length,
     concluido: tickets.filter((t) => t.status === "concluido").length,
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-graphite-50 pb-20">
+    <div className="flex min-h-screen flex-col bg-graphite-50 pb-20">
       {/* Realtime — atualiza a lista quando o admin muda algum chamado seu */}
       <RealtimeRefresher
         subs={[
@@ -53,39 +54,41 @@ export function FuncDashboard({
       />
 
       {/* Topbar */}
-      <header className="sticky top-0 z-10 bg-white border-b border-graphite-200 px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-graphite-200 bg-white px-4 py-3">
         <BrandLockup size={32} />
         <form action="/logout" method="POST">
-          <Button variant="ghost" size="sm" type="submit">Sair</Button>
+          <Button variant="ghost" size="sm" type="submit">
+            Sair
+          </Button>
         </form>
       </header>
 
-      <main className="flex-1 px-4 py-6 max-w-2xl w-full mx-auto">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-gold-600 mb-1">
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
+        <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-gold-600">
           Painel do funcionário
         </div>
-        <h1 className="text-2xl font-bold text-graphite-900 tracking-tight">Meus chamados</h1>
-        <p className="text-sm text-graphite-500 mt-1 mb-5">
+        <h1 className="text-2xl font-bold tracking-tight text-graphite-900">Meus chamados</h1>
+        <p className="mb-5 mt-1 text-sm text-graphite-500">
           Olá, {profile.nome?.split(" ")[0] ?? "colaborador"} — acompanhe seus pedidos.
         </p>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-2 mb-5">
-          <MiniStat label="Abertos"      value={stats.aberto}    tone="warn" />
+        <div className="mb-5 grid grid-cols-3 gap-2">
+          <MiniStat label="Abertos" value={stats.aberto} tone="warn" />
           <MiniStat label="Em andamento" value={stats.andamento} tone="info" />
-          <MiniStat label="Concluídos"   value={stats.concluido} tone="success" />
+          <MiniStat label="Concluídos" value={stats.concluido} tone="success" />
         </div>
 
         {/* Filter chips */}
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+        <div className="mb-4 flex gap-2 overflow-x-auto pb-2">
           {filtros.map((f) => (
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className={`px-3 py-1.5 rounded-full text-[13px] font-medium border whitespace-nowrap transition-colors ${
+              className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors ${
                 filter === f.id
-                  ? "bg-graphite-900 text-white border-graphite-900"
-                  : "bg-white text-graphite-700 border-graphite-200 hover:border-graphite-300"
+                  ? "border-graphite-900 bg-graphite-900 text-white"
+                  : "border-graphite-200 bg-white text-graphite-700 hover:border-graphite-300"
               }`}
             >
               {f.label}
@@ -96,10 +99,10 @@ export function FuncDashboard({
         {/* Lista */}
         {filtered.length === 0 ? (
           <Card>
-            <div className="text-center py-8">
-              <div className="text-graphite-400 text-3xl mb-2">📋</div>
-              <div className="font-semibold text-graphite-900 mb-1">Nenhum chamado por aqui</div>
-              <div className="text-sm text-graphite-500 mb-4">
+            <div className="py-8 text-center">
+              <div className="mb-2 text-3xl text-graphite-400">📋</div>
+              <div className="mb-1 font-semibold text-graphite-900">Nenhum chamado por aqui</div>
+              <div className="mb-4 text-sm text-graphite-500">
                 Quando você abrir um chamado, ele aparece nessa lista.
               </div>
               <Link href="/chamados/novo">
@@ -121,16 +124,24 @@ export function FuncDashboard({
   );
 }
 
-function MiniStat({ label, value, tone }: { label: string; value: number; tone: "warn" | "info" | "success" }) {
+function MiniStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "warn" | "info" | "success";
+}) {
   const toneClasses = {
-    warn:    "text-gold-700 bg-gold-50",
-    info:    "text-graphite-700 bg-graphite-100",
+    warn: "text-gold-700 bg-gold-50",
+    info: "text-graphite-700 bg-graphite-100",
     success: "text-emerald-700 bg-emerald-50",
   };
   return (
     <div className={`rounded-lg p-3 ${toneClasses[tone]}`}>
       <div className="text-xl font-bold leading-none">{value}</div>
-      <div className="text-[11px] font-medium mt-1">{label}</div>
+      <div className="mt-1 text-[11px] font-medium">{label}</div>
     </div>
   );
 }
@@ -138,23 +149,28 @@ function MiniStat({ label, value, tone }: { label: string; value: number; tone: 
 function TicketCard({ ticket, unidades }: { ticket: Ticket; unidades: Record<number, string> }) {
   return (
     <Link href={`/chamados/${ticket.id}`} prefetch={true} className="block">
-      <Card className="hover:border-graphite-300 transition-colors cursor-pointer">
-        <div className="flex items-center justify-between mb-2">
-          <ClassBadge classe={ticket.classe} />
-          <StatusPill status={ticket.status} />
+      <Card className="cursor-pointer transition-colors hover:border-graphite-300">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <ClassBadge classe={ticket.classe} />
+            <StatusPill status={ticket.status} />
+          </div>
+          <SlaPill ticket={ticket} />
         </div>
-        <div className="font-semibold text-graphite-900 mb-1">{ticket.titulo}</div>
+        <div className="mb-1 font-semibold text-graphite-900">{ticket.titulo}</div>
         {ticket.unidade_id && unidades[ticket.unidade_id] && (
-          <div className="text-xs text-graphite-500 mb-2">{unidades[ticket.unidade_id]}</div>
+          <div className="mb-2 text-xs text-graphite-500">{unidades[ticket.unidade_id]}</div>
         )}
-        <div className="bg-graphite-50 rounded-md p-3 text-[13px] text-graphite-700 space-y-0.5">
-          {Object.entries(ticket.campos).slice(0, 3).map(([k, v]) => (
-            <div key={k}>
-              <span className="text-graphite-500 inline-block w-32">{k}:</span> {v}
-            </div>
-          ))}
+        <div className="space-y-0.5 rounded-md bg-graphite-50 p-3 text-[13px] text-graphite-700">
+          {Object.entries(ticket.campos)
+            .slice(0, 3)
+            .map(([k, v]) => (
+              <div key={k}>
+                <span className="inline-block w-32 text-graphite-500">{k}:</span> {v}
+              </div>
+            ))}
         </div>
-        <div className="text-xs text-graphite-400 mt-2">
+        <div className="mt-2 text-xs text-graphite-400">
           Aberto em {new Date(ticket.created_at).toLocaleDateString("pt-BR")}
         </div>
       </Card>
