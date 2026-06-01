@@ -12,13 +12,16 @@ import { Pill } from "@/components/ui/Pill";
 import { BrandLockup } from "@/components/ui/BrandLockup";
 import { MobileBottomNav } from "@/components/nav/MobileBottomNav";
 import { updateProfile, updatePassword } from "@/app/perfil/actions";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import type { ThemePref } from "@/lib/theme";
 
 type Props = {
   profile: Profile;
   email: string;
+  initialTheme: ThemePref;
 };
 
-export function PerfilForm({ profile, email }: Props) {
+export function PerfilForm({ profile, email, initialTheme }: Props) {
   const router = useRouter();
   const isAdmin = profile.role === "admin";
 
@@ -51,6 +54,19 @@ export function PerfilForm({ profile, email }: Props) {
 
         <DadosForm profile={profile} email={email} onSaved={() => router.refresh()} />
         <SenhaForm />
+
+        {/* Tema */}
+        <Card>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 className="text-sm font-semibold text-graphite-900">Tema</h2>
+              <p className="text-xs text-graphite-500 mt-1">
+                Claro, escuro ou seguir a preferência do sistema.
+              </p>
+            </div>
+            <ThemeToggle initial={initialTheme} />
+          </div>
+        </Card>
 
         {/* Sair */}
         <Card>

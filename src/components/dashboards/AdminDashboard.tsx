@@ -69,6 +69,7 @@ export function AdminDashboard({
           <SidebarItem active label="Chamados" href="/dashboard" />
           <SidebarItem label="Usuários" href="/admin/usuarios" />
           <SidebarItem label="Chat" href="/admin/chat" />
+          <SidebarItem label="Analytics" href="/admin/analytics" />
           <SidebarItem label="Meu perfil" href="/perfil" />
         </nav>
         <div className="px-3 py-3 border-t border-graphite-200">

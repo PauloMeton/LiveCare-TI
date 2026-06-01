@@ -33,3 +33,85 @@ html, body {
   background: var(--gold-100);
   color: var(--graphite-900);
 }
+
+/* ============================================================
+   DARK MODE
+   Inverte os tokens cinza pra dar contraste invertido,
+   mantendo o gold/amber Live como acento.
+   ============================================================ */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background: #0a0a09;
+  color: #f7f7f5;
+}
+
+/* Backgrounds — invertem a escala */
+.dark .bg-white         { background-color: #161614 !important; }
+.dark .bg-graphite-50   { background-color: #0a0a09 !important; }
+.dark .bg-graphite-100  { background-color: #161614 !important; }
+.dark .bg-graphite-200  { background-color: #2e2e2c !important; }
+
+/* Texto — invertem a escala */
+.dark .text-graphite-900 { color: #f7f7f5 !important; }
+.dark .text-graphite-800 { color: #ebebe8 !important; }
+.dark .text-graphite-700 { color: #d6d6d2 !important; }
+.dark .text-graphite-600 { color: #9a9a96 !important; }
+.dark .text-graphite-500 { color: #9a9a96 !important; }
+.dark .text-graphite-400 { color: #6e6e6a !important; }
+
+/* Bordas — escurecem */
+.dark .border-graphite-100 { border-color: #2e2e2c !important; }
+.dark .border-graphite-200 { border-color: #2e2e2c !important; }
+.dark .border-graphite-300 { border-color: #4a4a47 !important; }
+
+/* Hovers */
+.dark .hover\:bg-graphite-100:hover { background-color: #2e2e2c !important; }
+.dark .hover\:border-graphite-300:hover { border-color: #6e6e6a !important; }
+.dark .hover\:border-graphite-400:hover { border-color: #9a9a96 !important; }
+
+/* Gold (acento) — clareia um pouco no dark */
+.dark .bg-gold-50  { background-color: #2e2820 !important; }
+.dark .bg-gold-100 { background-color: #3d3520 !important; }
+.dark .text-gold-700 { color: #ffd64d !important; }
+.dark .text-gold-600 { color: #ffcc00 !important; }
+.dark .border-gold-200 { border-color: #6e5500 !important; }
+
+/* Emerald (success) */
+.dark .bg-emerald-50  { background-color: #0a3a22 !important; }
+.dark .bg-emerald-100 { background-color: #0e5a35 !important; }
+.dark .text-emerald-700 { color: #6dd6a3 !important; }
+.dark .text-emerald-600 { color: #5cc090 !important; }
+.dark .border-emerald-100 { border-color: #0a6e3b !important; }
+
+/* Danger */
+.dark .bg-danger-50  { background-color: #3a1a16 !important; }
+.dark .text-danger-700 { color: #f4a59c !important; }
+.dark .text-danger-500 { color: #ed6a5d !important; }
+.dark .border-danger-50 { border-color: #5a2820 !important; }
+
+/* Inputs no dark — mantêm fundo sólido pra contraste */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #0a0a09;
+  color: #f7f7f5;
+  border-color: #2e2e2c;
+}
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: #ffcc00;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #6e6e6a;
+}
+
+/* Selection no dark */
+.dark ::selection {
+  background: #6e5500;
+  color: #fff3b0;
+}

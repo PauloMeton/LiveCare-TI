@@ -4,6 +4,7 @@ import type { Config } from "tailwindcss";
 // Variante B (Editorial) usa gold como cor primária.
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
