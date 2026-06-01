@@ -9,6 +9,10 @@ export type AnalyticsKpis = {
   rejeitados: number;
   tempo_medio_horas: number | null;
   sla_24h_pct: number | null;
+  /** Chamados abertos/andamento que passaram de 50% do prazo, mas não venceram. */
+  em_risco: number;
+  /** Chamados abertos/andamento que já passaram do prazo. */
+  vencidos: number;
 };
 
 export type StatusCount = { status: string; total: number };
