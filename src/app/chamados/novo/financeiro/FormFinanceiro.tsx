@@ -33,7 +33,7 @@ export function FormFinanceiro() {
         "CPF/CNPJ": doc,
       },
       unidade_id: null,
-      prioridade: "baixa"
+      prioridade: "baixa",
     });
     setLoading(false);
     if (result?.error) setError(result.error);
@@ -61,15 +61,23 @@ export function FormFinanceiro() {
                 <option>Não</option>
               </Select>
             </Field>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Field label="ISS">
                 <Input value={iss} onChange={(e) => setIss(e.target.value)} placeholder="R$ 0,00" />
               </Field>
               <Field label="IRRF">
-                <Input value={irrf} onChange={(e) => setIrrf(e.target.value)} placeholder="R$ 0,00" />
+                <Input
+                  value={irrf}
+                  onChange={(e) => setIrrf(e.target.value)}
+                  placeholder="R$ 0,00"
+                />
               </Field>
               <Field label="CSLL">
-                <Input value={csll} onChange={(e) => setCsll(e.target.value)} placeholder="R$ 0,00" />
+                <Input
+                  value={csll}
+                  onChange={(e) => setCsll(e.target.value)}
+                  placeholder="R$ 0,00"
+                />
               </Field>
             </div>
             <Field label="CPF / CNPJ" required>
@@ -86,12 +94,12 @@ export function FormFinanceiro() {
         </Card>
 
         {error && (
-          <div className="text-sm text-danger-700 bg-danger-50 border border-danger-50 rounded-md px-3 py-2">
+          <div className="rounded-md border border-danger-50 bg-danger-50 px-3 py-2 text-sm text-danger-700">
             {error}
           </div>
         )}
 
-        <div className="flex gap-2 justify-end">
+        <div className="flex justify-end gap-2">
           <Button variant="secondary" type="button" onClick={() => history.back()}>
             Cancelar
           </Button>
