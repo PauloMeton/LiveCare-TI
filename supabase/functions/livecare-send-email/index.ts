@@ -1,3 +1,4 @@
+// @ts-nocheck — arquivo Deno (Edge Function), nao Node/Next
 // Edge Function: livecare-send-email
 // Envia e-mail via SMTP (Gmail App Password ou outro provider).
 //
