@@ -29,70 +29,113 @@ type Props = {
 
 export function UsuariosList({ currentUserId, currentUserIsLider, users, loadError }: Props) {
   const [selected, setSelected] = useState<ListedUser | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex bg-graphite-50">
+    <div className="flex min-h-screen bg-graphite-50">
       {/* Realtime — refresca quando alguém se cadastra ou tem profile alterado */}
-      <RealtimeRefresher
-        subs={[{ channel: "admin-usuarios-profiles", table: "profiles" }]}
-      />
+      <RealtimeRefresher subs={[{ channel: "admin-usuarios-profiles", table: "profiles" }]} />
 
-      <aside className="w-64 bg-white border-r border-graphite-200 flex flex-col">
-        <div className="px-5 py-5 border-b border-graphite-200">
+      {/* Overlay mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-graphite-200 bg-white transition-transform duration-200 lg:static lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-graphite-200 px-5 py-5">
           <BrandLockup size={36} />
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            className="text-2xl leading-none text-graphite-500 lg:hidden"
+            aria-label="Fechar menu"
+          >
+            ×
+          </button>
         </div>
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
+        <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
           <Link
             href="/dashboard"
-            className="px-3 py-2 rounded-md text-sm font-medium text-graphite-700 hover:bg-graphite-100"
+            className="rounded-md px-3 py-2 text-sm font-medium text-graphite-700 hover:bg-graphite-100"
           >
             Chamados
           </Link>
-          <div className="px-3 py-2 rounded-md text-sm font-medium bg-graphite-900 text-white">
+          <div className="rounded-md bg-graphite-900 px-3 py-2 text-sm font-medium text-white">
             Usuários
           </div>
           <Link
             href="/admin/chat"
-            className="px-3 py-2 rounded-md text-sm font-medium text-graphite-700 hover:bg-graphite-100"
+            className="rounded-md px-3 py-2 text-sm font-medium text-graphite-700 hover:bg-graphite-100"
           >
             Chat
           </Link>
           <Link
+            href="/admin/analytics"
+            className="rounded-md px-3 py-2 text-sm font-medium text-graphite-700 hover:bg-graphite-100"
+          >
+            Analytics
+          </Link>
+          <Link
             href="/perfil"
-            className="px-3 py-2 rounded-md text-sm font-medium text-graphite-700 hover:bg-graphite-100"
+            className="rounded-md px-3 py-2 text-sm font-medium text-graphite-700 hover:bg-graphite-100"
           >
             Meu perfil
           </Link>
         </nav>
-        <div className="px-3 py-3 border-t border-graphite-200">
+        <div className="border-t border-graphite-200 px-3 py-3">
           <form action="/logout" method="POST">
-            <Button variant="ghost" full size="sm" type="submit">Sair</Button>
+            <Button variant="ghost" full size="sm" type="submit">
+              Sair
+            </Button>
           </form>
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto p-8 max-w-[1400px]">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-gold-600 mb-1">
+      <main className="max-w-[1400px] flex-1 overflow-auto p-4 lg:p-8">
+        {/* Header mobile com hamburguer */}
+        <div className="mb-4 flex items-center gap-3 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="-ml-1 rounded-md p-2 text-graphite-700 hover:bg-graphite-100"
+            aria-label="Abrir menu"
+          >
+            <span className="block h-0.5 w-5 bg-current" />
+            <span className="mt-1 block h-0.5 w-5 bg-current" />
+            <span className="mt-1 block h-0.5 w-5 bg-current" />
+          </button>
+          <BrandLockup size={28} />
+        </div>
+
+        <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-gold-600">
           Suporte TI · Administração
         </div>
-        <h1 className="text-3xl font-bold text-graphite-900 tracking-tight mb-1">Usuários</h1>
-        <p className="text-sm text-graphite-500 mb-6">
+        <h1 className="mb-1 text-3xl font-bold tracking-tight text-graphite-900">Usuários</h1>
+        <p className="mb-6 text-sm text-graphite-500">
           {users.length} {users.length === 1 ? "usuário cadastrado" : "usuários cadastrados"}.
         </p>
 
         {loadError && (
-          <div className="mb-6 text-sm text-danger-700 bg-danger-50 border border-danger-50 rounded-md px-3 py-2">
+          <div className="mb-6 rounded-md border border-danger-50 bg-danger-50 px-3 py-2 text-sm text-danger-700">
             {loadError}
           </div>
         )}
 
         {users.length === 0 && !loadError ? (
-          <div className="bg-white border border-graphite-200 rounded-lg p-10 text-center text-graphite-500">
+          <div className="rounded-lg border border-graphite-200 bg-white p-10 text-center text-graphite-500">
             Nenhum usuário encontrado.
           </div>
         ) : (
-          <div className="bg-white border border-graphite-200 rounded-lg overflow-hidden">
-            <div className="px-5 py-3 border-b border-graphite-200 grid grid-cols-[2fr_2fr_1fr_1fr_auto] gap-3 text-[11px] font-semibold uppercase tracking-wider text-graphite-600">
+          <div className="overflow-hidden rounded-lg border border-graphite-200 bg-white">
+            <div className="grid grid-cols-[2fr_2fr_1fr_1fr_auto] gap-3 border-b border-graphite-200 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-graphite-600">
               <div>Nome</div>
               <div>E-mail</div>
               <div>Papel</div>
@@ -102,34 +145,38 @@ export function UsuariosList({ currentUserId, currentUserIsLider, users, loadErr
             {users.map((u) => (
               <div
                 key={u.id}
-                className="px-5 py-3 border-b border-graphite-100 last:border-b-0 grid grid-cols-[2fr_2fr_1fr_1fr_auto] gap-3 items-center text-sm"
+                className="grid grid-cols-[2fr_2fr_1fr_1fr_auto] items-center gap-3 border-b border-graphite-100 px-5 py-3 text-sm last:border-b-0"
               >
-                <div className="flex items-center gap-3 min-w-0">
+                <div className="flex min-w-0 items-center gap-3">
                   <Avatar
                     name={u.nome ?? "?"}
                     size={32}
                     color={u.lider ? "var(--gold-100, #fff3b0)" : undefined}
                   />
                   <div className="min-w-0">
-                    <div className="font-semibold text-graphite-900 truncate flex items-center gap-1">
+                    <div className="flex items-center gap-1 truncate font-semibold text-graphite-900">
                       {u.nome ?? "—"}
                       {u.lider && (
-                        <span className="text-gold-600" title="Líder admin" aria-label="Líder admin">
+                        <span
+                          className="text-gold-600"
+                          title="Líder admin"
+                          aria-label="Líder admin"
+                        >
                           ★
                         </span>
                       )}
                       {u.id === currentUserId && (
-                        <span className="text-[10px] uppercase tracking-wider text-graphite-400 ml-1">
+                        <span className="ml-1 text-[10px] uppercase tracking-wider text-graphite-400">
                           (você)
                         </span>
                       )}
                     </div>
                     {u.cargo && (
-                      <div className="text-[11px] text-graphite-500 truncate">{u.cargo}</div>
+                      <div className="truncate text-[11px] text-graphite-500">{u.cargo}</div>
                     )}
                   </div>
                 </div>
-                <div className="text-graphite-700 truncate">{u.email}</div>
+                <div className="truncate text-graphite-700">{u.email}</div>
                 <div>
                   {u.role === "admin" ? (
                     <Pill tone="warn">Admin</Pill>
@@ -279,35 +326,39 @@ function ManageUserModal({
     <Modal open onClose={onClose} title="Gerenciar usuário" size="lg">
       <div className="flex flex-col gap-4">
         {/* Cabeçalho com identidade */}
-        <div className="flex items-center gap-3 pb-3 border-b border-graphite-100">
+        <div className="flex items-center gap-3 border-b border-graphite-100 pb-3">
           <Avatar
             name={user.nome ?? "?"}
             size={48}
             color={user.lider ? "var(--gold-100, #fff3b0)" : undefined}
           />
           <div className="min-w-0">
-            <div className="font-semibold text-graphite-900 truncate flex items-center gap-1">
+            <div className="flex items-center gap-1 truncate font-semibold text-graphite-900">
               {user.nome ?? "—"}
               {user.lider && <span className="text-gold-600">★</span>}
             </div>
-            <div className="text-xs text-graphite-500 truncate">{user.email}</div>
-            <div className="flex items-center gap-1 mt-1.5">
+            <div className="truncate text-xs text-graphite-500">{user.email}</div>
+            <div className="mt-1.5 flex items-center gap-1">
               {user.role === "admin" ? (
                 <Pill tone="warn">Admin</Pill>
               ) : (
                 <Pill tone="neutral">Funcionário</Pill>
               )}
-              {user.suspenso ? <Pill tone="danger">Suspenso</Pill> : <Pill tone="success">Ativo</Pill>}
+              {user.suspenso ? (
+                <Pill tone="danger">Suspenso</Pill>
+              ) : (
+                <Pill tone="success">Ativo</Pill>
+              )}
             </div>
           </div>
         </div>
 
         {feedback && (
           <div
-            className={`text-sm rounded-md px-3 py-2 border ${
+            className={`rounded-md border px-3 py-2 text-sm ${
               feedback.kind === "ok"
-                ? "text-emerald-700 bg-emerald-50 border-emerald-100"
-                : "text-danger-700 bg-danger-50 border-danger-50"
+                ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                : "border-danger-50 bg-danger-50 text-danger-700"
             }`}
           >
             {feedback.msg}
@@ -410,13 +461,9 @@ function ManageUserModal({
             </Button>
           </div>
           {confirmDelete && (
-            <div className="text-xs text-danger-700 mt-2">
+            <div className="mt-2 text-xs text-danger-700">
               Clique de novo no botão acima para confirmar, ou{" "}
-              <button
-                type="button"
-                className="underline"
-                onClick={() => setConfirmDelete(false)}
-              >
+              <button type="button" className="underline" onClick={() => setConfirmDelete(false)}>
                 cancelar
               </button>
               .
@@ -424,7 +471,7 @@ function ManageUserModal({
           )}
         </Section>
 
-        <div className="flex justify-end pt-2 border-t border-graphite-100">
+        <div className="flex justify-end border-t border-graphite-100 pt-2">
           <Button variant="secondary" onClick={onClose}>
             Fechar
           </Button>
@@ -451,7 +498,7 @@ function Section({
           : "border-graphite-200 bg-graphite-50"
       }`}
     >
-      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-graphite-600 mb-2">
+      <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-graphite-600">
         {title}
       </h3>
       {children}

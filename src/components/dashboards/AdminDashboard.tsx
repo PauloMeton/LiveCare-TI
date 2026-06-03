@@ -26,6 +26,8 @@ export function AdminDashboard({
   const [filterStatus, setFilterStatus] = useState<"todos" | Status>("todos");
   const [filterDate, setFilterDate] = useState<string>("");
   const [query, setQuery] = useState("");
+  // Drawer da sidebar no mobile
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return tickets.filter((t) => {
@@ -61,10 +63,31 @@ export function AdminDashboard({
         ]}
       />
 
-      {/* Sidebar */}
-      <aside className="flex w-64 flex-col border-r border-graphite-200 bg-white">
-        <div className="border-b border-graphite-200 px-5 py-5">
+      {/* Overlay escuro no mobile quando sidebar aberta */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar — drawer no mobile, fixa no desktop */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-graphite-200 bg-white transition-transform duration-200 lg:static lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-graphite-200 px-5 py-5">
           <BrandLockup size={36} />
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            className="text-2xl leading-none text-graphite-500 lg:hidden"
+            aria-label="Fechar menu"
+          >
+            ×
+          </button>
         </div>
         <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
           <SidebarItem active label="Chamados" href="/dashboard" />
@@ -87,13 +110,28 @@ export function AdminDashboard({
       </aside>
 
       {/* Conteúdo */}
-      <main className="max-w-[1400px] flex-1 overflow-auto p-8">
-        <div className="mb-6 flex items-start justify-between gap-4">
+      <main className="max-w-[1400px] flex-1 overflow-auto p-4 lg:p-8">
+        {/* Header mobile com hamburguer */}
+        <div className="mb-4 flex items-center gap-3 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="-ml-1 rounded-md p-2 text-graphite-700 hover:bg-graphite-100"
+            aria-label="Abrir menu"
+          >
+            <span className="block h-0.5 w-5 bg-current" />
+            <span className="mt-1 block h-0.5 w-5 bg-current" />
+            <span className="mt-1 block h-0.5 w-5 bg-current" />
+          </button>
+          <BrandLockup size={28} />
+        </div>
+
+        <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row">
           <div>
             <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-gold-600">
               Suporte TI · Painel
             </div>
-            <h1 className="mb-1 text-3xl font-bold tracking-tight text-graphite-900">
+            <h1 className="mb-1 text-2xl font-bold tracking-tight text-graphite-900 lg:text-3xl">
               Gerenciamento de chamados
             </h1>
             <p className="text-sm text-graphite-500">
@@ -111,7 +149,7 @@ export function AdminDashboard({
         </div>
 
         {/* Stats */}
-        <div className="mb-6 grid grid-cols-3 gap-4">
+        <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-4">
           <StatCard label="Abertos" value={stats.aberto} tone="warn" />
           <StatCard label="Em andamento" value={stats.andamento} tone="info" />
           <StatCard label="Concluídos" value={stats.concluido} tone="success" />
@@ -119,7 +157,7 @@ export function AdminDashboard({
 
         {/* Filtros */}
         <Card className="mb-6">
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <label className="text-[12px] font-medium text-graphite-600">Data</label>
               <Input

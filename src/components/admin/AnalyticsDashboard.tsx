@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   ResponsiveContainer,
   PieChart,
@@ -52,6 +53,7 @@ const CLASSE_COLOR: Record<string, string> = {
 
 export function AnalyticsDashboard({ profile, periodo, data }: Props) {
   const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   function setPeriodo(d: number) {
     router.push(`/admin/analytics?d=${d}`);
@@ -84,10 +86,31 @@ export function AnalyticsDashboard({ profile, periodo, data }: Props) {
       />
 
       <div className="flex h-screen">
-        {/* Sidebar */}
-        <aside className="flex w-56 flex-shrink-0 flex-col border-r border-graphite-200 bg-white">
-          <div className="border-b border-graphite-100 px-5 py-4">
+        {/* Overlay mobile */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Sidebar — drawer mobile, fixa desktop */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-40 flex w-56 flex-shrink-0 flex-col border-r border-graphite-200 bg-white transition-transform duration-200 lg:static lg:translate-x-0 ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          }`}
+        >
+          <div className="flex items-center justify-between border-b border-graphite-100 px-5 py-4">
             <BrandLockup size={32} />
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              className="text-2xl leading-none text-graphite-500 lg:hidden"
+              aria-label="Fechar menu"
+            >
+              ×
+            </button>
           </div>
           <nav className="flex-1 space-y-1 p-3 text-sm">
             <SidebarItem label="Chamados" href="/dashboard" />
@@ -108,7 +131,22 @@ export function AnalyticsDashboard({ profile, periodo, data }: Props) {
 
         {/* Main */}
         <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-6xl px-6 py-6">
+          <div className="mx-auto max-w-6xl px-4 py-4 lg:px-6 lg:py-6">
+            {/* Header mobile com hamburguer */}
+            <div className="mb-4 flex items-center gap-3 lg:hidden">
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(true)}
+                className="-ml-1 rounded-md p-2 text-graphite-700 hover:bg-graphite-100"
+                aria-label="Abrir menu"
+              >
+                <span className="block h-0.5 w-5 bg-current" />
+                <span className="mt-1 block h-0.5 w-5 bg-current" />
+                <span className="mt-1 block h-0.5 w-5 bg-current" />
+              </button>
+              <BrandLockup size={28} />
+            </div>
+
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h1 className="text-2xl font-bold text-graphite-900">Analytics</h1>
