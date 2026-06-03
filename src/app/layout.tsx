@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { NotificationsShell } from "@/components/notifications/NotificationsShell";
+import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
 import { normalizeTheme, THEME_COOKIE, THEME_INIT_SCRIPT } from "@/lib/theme";
 
 export const metadata: Metadata = {
@@ -52,6 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="antialiased">
         {children}
         <NotificationsShell />
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );
