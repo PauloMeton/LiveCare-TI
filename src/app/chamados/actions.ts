@@ -19,6 +19,7 @@ import {
 import type { TicketEventTipo } from "@/lib/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { TICKET_ATTACHMENTS_BUCKET } from "@/lib/ticketAttachments";
+import { userFacingDbError } from "@/lib/dbErrors";
 
 /** Insere um event de auditoria. */
 async function insertEvent(
@@ -93,7 +94,7 @@ export async function updateTicket(input: UpdateTicketInput) {
     })
     .eq("id", v.ticketId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: userFacingDbError(error) };
 
   await insertEvent(supabase, v.ticketId, user.id, "editado");
 
@@ -113,12 +114,17 @@ export async function cancelTicket(ticketId: string) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Não autenticado" };
 
-  const { error } = await supabase
+  // Guard: só permite cancelar se ainda está aberto (impede race)
+  const { data, error } = await supabase
     .from("livecare_tickets")
     .update({ status: "cancelado" })
-    .eq("id", parsed.data);
+    .eq("id", parsed.data)
+    .eq("status", "aberto")
+    .select("id")
+    .maybeSingle();
 
-  if (error) return { error: error.message };
+  if (error) return { error: userFacingDbError(error) };
+  if (!data) return { error: "Chamado não pode mais ser cancelado (estado mudou)." };
 
   await insertEvent(supabase, parsed.data, user.id, "cancelado");
 
@@ -138,12 +144,17 @@ export async function setEmAndamento(ticketId: string) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Não autenticado" };
 
-  const { error } = await supabase
+  // Guard: só sai de 'aberto' pra 'andamento'
+  const { data, error } = await supabase
     .from("livecare_tickets")
     .update({ status: "andamento" })
-    .eq("id", parsed.data);
+    .eq("id", parsed.data)
+    .eq("status", "aberto")
+    .select("id")
+    .maybeSingle();
 
-  if (error) return { error: error.message };
+  if (error) return { error: userFacingDbError(error) };
+  if (!data) return { error: "Status do chamado mudou — recarregue a página." };
 
   await insertEvent(supabase, parsed.data, user.id, "andamento");
 
@@ -163,16 +174,21 @@ export async function concluirTicket(ticketId: string) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Não autenticado" };
 
-  const { error } = await supabase
+  // Guard: só conclui de 'aberto' ou 'andamento'
+  const { data, error } = await supabase
     .from("livecare_tickets")
     .update({
       status: "concluido",
       concluido_em: new Date().toISOString(),
       concluido_por: user.id,
     })
-    .eq("id", parsed.data);
+    .eq("id", parsed.data)
+    .in("status", ["aberto", "andamento"])
+    .select("id")
+    .maybeSingle();
 
-  if (error) return { error: error.message };
+  if (error) return { error: userFacingDbError(error) };
+  if (!data) return { error: "Chamado já está fechado — recarregue a página." };
 
   await insertEvent(supabase, parsed.data, user.id, "concluido");
 
@@ -192,16 +208,21 @@ export async function reopenTicket(ticketId: string) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Não autenticado" };
 
-  const { error } = await supabase
+  // Guard: só reabre se estava fechado
+  const { data, error } = await supabase
     .from("livecare_tickets")
     .update({
       status: "aberto",
       concluido_em: null,
       concluido_por: null,
     })
-    .eq("id", parsed.data);
+    .eq("id", parsed.data)
+    .in("status", ["concluido", "cancelado", "rejeitado"])
+    .select("id")
+    .maybeSingle();
 
-  if (error) return { error: error.message };
+  if (error) return { error: userFacingDbError(error) };
+  if (!data) return { error: "Chamado já está aberto — recarregue a página." };
 
   await insertEvent(supabase, parsed.data, user.id, "reaberto");
 
@@ -239,7 +260,7 @@ export async function addTicketAttachment(input: AddTicketAttachmentInput) {
     size: v.size,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: userFacingDbError(error) };
 
   revalidatePath(`/chamados/${v.ticketId}`);
   return { ok: true };
@@ -293,12 +314,17 @@ export async function rejectTicket(input: RejectTicketInput) {
   if (!user) return { error: "Não autenticado" };
 
   const v = parsed.data;
-  const { error } = await supabase
+  // Guard: só rejeita se ainda está em aberto/andamento
+  const { data, error } = await supabase
     .from("livecare_tickets")
     .update({ status: "rejeitado" })
-    .eq("id", v.ticketId);
+    .eq("id", v.ticketId)
+    .in("status", ["aberto", "andamento"])
+    .select("id")
+    .maybeSingle();
 
-  if (error) return { error: error.message };
+  if (error) return { error: userFacingDbError(error) };
+  if (!data) return { error: "Chamado já está fechado — recarregue a página." };
 
   await insertEvent(supabase, v.ticketId, user.id, "rejeitado", { motivo: v.motivo });
 
