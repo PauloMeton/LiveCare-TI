@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { NotificationsShell } from "@/components/notifications/NotificationsShell";
 import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { normalizeTheme, THEME_COOKIE, THEME_INIT_SCRIPT } from "@/lib/theme";
 
 export const metadata: Metadata = {
@@ -54,6 +55,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {children}
         <NotificationsShell />
         <ServiceWorkerRegistration />
+        <InstallPrompt />
       </body>
     </html>
   );
