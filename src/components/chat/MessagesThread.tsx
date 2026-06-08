@@ -1,13 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
-import {
-  sendMessage,
-  markConversationRead,
-  deleteOwnMessage,
-} from "@/app/chat/actions";
+import { sendMessage, markConversationRead, deleteOwnMessage } from "@/app/chat/actions";
 import { ATTACHMENTS_BUCKET, getSignedUrl } from "@/lib/chatAttachments";
 import type { Message, AttachmentType } from "@/lib/types";
 
@@ -53,13 +49,10 @@ function extOf(filename: string): string {
   return dot >= 0 ? filename.slice(dot + 1).toLowerCase() : "bin";
 }
 
-export function MessagesThread({
-  conversaId,
-  currentUserId,
-  initialMessages,
-  emptyHint,
-}: Props) {
-  const supabase = createClient();
+export function MessagesThread({ conversaId, currentUserId, initialMessages, emptyHint }: Props) {
+  // Memoiza o client pra evitar loop de reconexao do realtime
+  // (cada render criava nova referencia e o useEffect cleanup desconectava o canal)
+  const supabase = useMemo(() => createClient(), []);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [text, setText] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -126,9 +119,7 @@ export function MessagesThread({
         (payload) => {
           const m = payload.new as Message;
           setMessages((prev) =>
-            prev.map((x) =>
-              x.id === m.id ? { ...m, attachment_url: x.attachment_url } : x
-            )
+            prev.map((x) => (x.id === m.id ? { ...m, attachment_url: x.attachment_url } : x))
           );
         }
       )
@@ -226,7 +217,10 @@ export function MessagesThread({
       setError(r.error);
       // Se a mensagem falhou mas o anexo subiu, tenta limpar pra não deixar lixo
       if (attachmentPath) {
-        await supabase.storage.from(ATTACHMENTS_BUCKET).remove([attachmentPath]).catch(() => {});
+        await supabase.storage
+          .from(ATTACHMENTS_BUCKET)
+          .remove([attachmentPath])
+          .catch(() => {});
       }
       return;
     }
@@ -245,16 +239,16 @@ export function MessagesThread({
   const canSend = !sending && (text.trim().length > 0 || pendingFile !== null);
 
   return (
-    <div className="flex flex-col h-full bg-graphite-50">
+    <div className="flex h-full flex-col bg-graphite-50">
       {/* Lista de bolhas */}
       <div className="flex-1 overflow-y-auto px-4 py-3">
         {visible.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-graphite-500 text-center py-12">
-            <div className="text-4xl mb-2" aria-hidden>
+          <div className="flex h-full flex-col items-center justify-center py-12 text-center text-graphite-500">
+            <div className="mb-2 text-4xl" aria-hidden>
               💬
             </div>
             <div className="text-sm font-medium text-graphite-700">Nenhuma mensagem ainda</div>
-            <div className="text-xs mt-1">{emptyHint ?? "Mande a primeira pra começar."}</div>
+            <div className="mt-1 text-xs">{emptyHint ?? "Mande a primeira pra começar."}</div>
           </div>
         ) : (
           <div className="flex flex-col gap-2">
@@ -273,27 +267,26 @@ export function MessagesThread({
 
       {/* Preview do anexo selecionado */}
       {pendingFile && pendingPreview && (
-        <div className="border-t border-graphite-200 bg-white px-3 py-2 flex items-center gap-3">
+        <div className="flex items-center gap-3 border-t border-graphite-200 bg-white px-3 py-2">
           {pendingFile.type.startsWith("image/") ? (
             <img
               src={pendingPreview}
               alt="Pré-visualização"
-              className="w-14 h-14 object-cover rounded-md border border-graphite-200"
+              className="h-14 w-14 rounded-md border border-graphite-200 object-cover"
             />
           ) : (
             <video
               src={pendingPreview}
-              className="w-14 h-14 object-cover rounded-md border border-graphite-200"
+              className="h-14 w-14 rounded-md border border-graphite-200 object-cover"
               muted
             />
           )}
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-graphite-900 truncate">
-              {pendingFile.name}
-            </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-medium text-graphite-900">{pendingFile.name}</div>
             <div className="text-xs text-graphite-500">
               {formatBytes(pendingFile.size)}
-              {uploadProgress !== null && ` · ${uploadProgress === 100 ? "enviado" : "enviando..."}`}
+              {uploadProgress !== null &&
+                ` · ${uploadProgress === 100 ? "enviado" : "enviando..."}`}
             </div>
           </div>
           <button
@@ -301,7 +294,7 @@ export function MessagesThread({
             onClick={clearPending}
             disabled={sending}
             aria-label="Remover anexo"
-            className="text-graphite-500 hover:text-danger-600 text-xl px-1"
+            className="px-1 text-xl text-graphite-500 hover:text-danger-600"
           >
             ×
           </button>
@@ -311,7 +304,7 @@ export function MessagesThread({
       {/* Input */}
       <form
         onSubmit={handleSend}
-        className="border-t border-graphite-200 bg-white px-3 py-2 flex gap-2 items-end"
+        className="flex items-end gap-2 border-t border-graphite-200 bg-white px-3 py-2"
       >
         <input
           ref={fileInputRef}
@@ -327,7 +320,7 @@ export function MessagesThread({
           disabled={sending}
           aria-label="Anexar imagem ou vídeo"
           title="Anexar imagem ou vídeo (máx 25 MB)"
-          className="text-graphite-500 hover:text-graphite-900 disabled:opacity-50 px-2 text-xl leading-none flex-shrink-0 self-center"
+          className="flex-shrink-0 self-center px-2 text-xl leading-none text-graphite-500 hover:text-graphite-900 disabled:opacity-50"
         >
           📎
         </button>
@@ -344,7 +337,7 @@ export function MessagesThread({
           disabled={sending}
           rows={1}
           maxLength={4000}
-          className="flex-1 resize-none rounded-md border border-graphite-200 px-3 py-2 text-sm text-graphite-900 outline-none focus:border-graphite-900 max-h-32"
+          className="max-h-32 flex-1 resize-none rounded-md border border-graphite-200 px-3 py-2 text-sm text-graphite-900 outline-none focus:border-graphite-900"
         />
         <Button type="submit" size="md" disabled={!canSend}>
           {sending ? "Enviando…" : "Enviar"}
@@ -352,7 +345,7 @@ export function MessagesThread({
       </form>
 
       {error && (
-        <div className="bg-danger-50 text-danger-700 text-sm px-3 py-2 border-t border-danger-50">
+        <div className="border-t border-danger-50 bg-danger-50 px-3 py-2 text-sm text-danger-700">
           {error}
         </div>
       )}
@@ -370,38 +363,35 @@ function Bubble({
   onDelete: () => void;
 }) {
   return (
-    <div className={`flex items-end gap-1 group ${isOwn ? "justify-end" : "justify-start"}`}>
+    <div className={`group flex items-end gap-1 ${isOwn ? "justify-end" : "justify-start"}`}>
       {isOwn && (
         <button
           onClick={onDelete}
           aria-label="Excluir mensagem"
-          className="opacity-0 group-hover:opacity-100 text-graphite-400 hover:text-danger-600 text-sm px-1 transition-opacity"
+          className="px-1 text-sm text-graphite-400 opacity-0 transition-opacity hover:text-danger-600 group-hover:opacity-100"
         >
           ×
         </button>
       )}
       <div
-        className={`max-w-[78%] sm:max-w-md rounded-lg overflow-hidden ${
+        className={`max-w-[78%] overflow-hidden rounded-lg sm:max-w-md ${
           isOwn
-            ? "bg-gold-100 text-graphite-900 rounded-br-sm"
-            : "bg-white border border-graphite-200 text-graphite-900 rounded-bl-sm"
+            ? "rounded-br-sm bg-gold-100 text-graphite-900"
+            : "rounded-bl-sm border border-graphite-200 bg-white text-graphite-900"
         }`}
       >
         {/* Anexo */}
         {message.attachment_path && message.attachment_url && (
-          <AttachmentView
-            type={message.attachment_type}
-            url={message.attachment_url}
-          />
+          <AttachmentView type={message.attachment_type} url={message.attachment_url} />
         )}
 
         {/* Texto + meta */}
         <div className="px-3 py-2">
           {message.conteudo && (
-            <div className="text-sm whitespace-pre-wrap break-words">{message.conteudo}</div>
+            <div className="whitespace-pre-wrap break-words text-sm">{message.conteudo}</div>
           )}
           <div
-            className={`text-[10px] mt-1 flex items-center gap-1 justify-end ${
+            className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
               isOwn ? "text-graphite-600" : "text-graphite-500"
             }`}
           >
@@ -422,20 +412,19 @@ function Bubble({
   );
 }
 
-function AttachmentView({
-  type,
-  url,
-}: {
-  type: AttachmentType | null;
-  url: string;
-}) {
+function AttachmentView({ type, url }: { type: AttachmentType | null; url: string }) {
   if (type === "image") {
     return (
-      <a href={url} target="_blank" rel="noopener noreferrer" aria-label="Abrir imagem em tamanho real">
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Abrir imagem em tamanho real"
+      >
         <img
           src={url}
           alt="Anexo"
-          className="block max-w-full max-h-80 object-cover cursor-zoom-in"
+          className="block max-h-80 max-w-full cursor-zoom-in object-cover"
           loading="lazy"
         />
       </a>
@@ -447,7 +436,7 @@ function AttachmentView({
         src={url}
         controls
         preload="metadata"
-        className="block max-w-full max-h-80 bg-graphite-900"
+        className="block max-h-80 max-w-full bg-graphite-900"
       />
     );
   }
