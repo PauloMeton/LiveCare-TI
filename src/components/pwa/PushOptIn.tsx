@@ -5,19 +5,19 @@ import { savePushSubscription, deletePushSubscription } from "@/app/push/actions
 
 type Status = "loading" | "unsupported" | "granted" | "denied" | "default" | "no-vapid";
 
-/** Converte string base64url (VAPID public key) pra Uint8Array. */
-function urlBase64ToUint8Array(base64: string): Uint8Array {
+/**
+ * Converte string base64url (VAPID public key) pra Uint8Array com ArrayBuffer.
+ * Importante: aloca um ArrayBuffer explícito (não SharedArrayBuffer) porque
+ * a Web Push API exige Uint8Array<ArrayBuffer> (BufferSource) — TS 5.7+ checa isso.
+ */
+function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
   const base64Std = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
   const raw = atob(base64Std);
-  const out = new Uint8Array(raw.length);
+  const buffer = new ArrayBuffer(raw.length);
+  const out = new Uint8Array(buffer);
   for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
   return out;
-}
-
-function abToBase64(buf: ArrayBuffer | null): string {
-  if (!buf) return "";
-  return btoa(String.fromCharCode(...new Uint8Array(buf)));
 }
 
 export function PushOptIn() {
