@@ -7,13 +7,7 @@ export const ClasseSchema = z.enum(["RH", "Financeiro", "Operacoes"], {
   errorMap: () => ({ message: "Classe inválida." }),
 });
 
-export const StatusSchema = z.enum([
-  "aberto",
-  "andamento",
-  "concluido",
-  "cancelado",
-  "rejeitado",
-]);
+export const StatusSchema = z.enum(["aberto", "andamento", "concluido", "cancelado", "rejeitado"]);
 export const PrioridadeSchema = z.enum(["baixa", "media", "alta"]);
 
 export const UuidSchema = z.string().uuid("Identificador inválido.");
@@ -125,11 +119,21 @@ export const SendMessageSchema = z
     (v) => (v.conteudo && v.conteudo.length > 0) || !!v.attachmentPath,
     "Mensagem vazia. Escreva algo ou anexe um arquivo."
   )
-  .refine(
-    (v) => (v.attachmentPath ? !!v.attachmentType : true),
-    "Tipo do anexo é obrigatório."
-  );
+  .refine((v) => (v.attachmentPath ? !!v.attachmentType : true), "Tipo do anexo é obrigatório.");
 export type SendMessageInput = z.infer<typeof SendMessageSchema>;
+
+/* ============================================================
+   PUSH NOTIFICATIONS
+   ============================================================ */
+
+/** Subscription Web Push enviada pelo client após pedir permissão. */
+export const PushSubscriptionSchema = z.object({
+  endpoint: z.string().url().max(2000),
+  p256dh: z.string().min(1).max(500),
+  auth: z.string().min(1).max(500),
+  userAgent: z.string().max(500).optional().nullable(),
+});
+export type PushSubscriptionInput = z.infer<typeof PushSubscriptionSchema>;
 
 /** ID numérico de mensagem (PK da tabela). */
 export const MessageIdSchema = z

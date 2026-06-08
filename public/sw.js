@@ -129,3 +129,55 @@ async function staleWhileRevalidate(request) {
 self.addEventListener("message", (event) => {
   if (event.data === "SKIP_WAITING") self.skipWaiting();
 });
+
+// ============================================================
+// PUSH NOTIFICATIONS
+// ============================================================
+
+self.addEventListener("push", (event) => {
+  // O payload chega como JSON enviado pela Edge Function
+  let data = {
+    title: "LiveCare TI",
+    body: "Você tem uma atualização.",
+    url: "/dashboard",
+    tag: undefined,
+  };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch {
+    if (event.data) data.body = event.data.text();
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: data.tag, // mesma tag substitui notificacao anterior em vez de empilhar
+      data: { url: data.url },
+      vibrate: [100, 50, 100],
+      requireInteraction: false,
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url ?? "/dashboard";
+
+  event.waitUntil(
+    (async () => {
+      const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      // Se ja tem o app aberto, foca nele e navega
+      for (const client of clients) {
+        if ("focus" in client) {
+          await client.focus();
+          if ("navigate" in client) await client.navigate(url);
+          return;
+        }
+      }
+      // Senao, abre nova aba
+      if (self.clients.openWindow) await self.clients.openWindow(url);
+    })()
+  );
+});
