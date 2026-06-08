@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { NotificationsShell } from "@/components/notifications/NotificationsShell";
 import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { OfflineBanner } from "@/components/pwa/OfflineBanner";
 import { normalizeTheme, THEME_COOKIE, THEME_INIT_SCRIPT } from "@/lib/theme";
 
 export const metadata: Metadata = {
@@ -52,6 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="antialiased">
+        <OfflineBanner />
         {children}
         <NotificationsShell />
         <ServiceWorkerRegistration />
