@@ -130,6 +130,70 @@ export function MessagesThread({ conversaId, currentUserId, initialMessages, emp
     };
   }, [conversaId, supabase]);
 
+  // Polling de fallback — se o Realtime falhar (cache do SW, token expirado,
+  // rede ruim), garante que mensagens novas aparecem em ate 5s.
+  // Pausado quando a aba nao esta visivel pra economizar banda/CPU.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function refetch() {
+      if (cancelled || document.visibilityState === "hidden") return;
+      const { data } = await supabase
+        .from("livecare_messages")
+        .select(
+          "id, conversa_id, autor_id, conteudo, read_at, deleted_at, created_at, attachment_path, attachment_type, attachment_size"
+        )
+        .eq("conversa_id", conversaId)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (cancelled || !data) return;
+
+      const ordered = (data as Message[]).slice().reverse();
+
+      setMessages((prev) => {
+        // Merge: mantem signed URLs ja resolvidas pra anexos
+        const prevById = new Map(prev.map((m) => [m.id, m] as const));
+        const merged = ordered.map((m) => {
+          const old = prevById.get(m.id);
+          return old && old.attachment_url ? { ...m, attachment_url: old.attachment_url } : m;
+        });
+        // Se nada mudou, retorna a mesma referencia pra evitar re-render
+        if (
+          merged.length === prev.length &&
+          merged.every((m, i) => m.id === prev[i]?.id && m.read_at === prev[i]?.read_at)
+        ) {
+          return prev;
+        }
+        return merged;
+      });
+
+      // Resolve signed URLs em background pra anexos novos sem url
+      ordered
+        .filter((m) => m.attachment_path && !m.attachment_url)
+        .forEach(async (m) => {
+          const url = await getSignedUrl(supabase, m.attachment_path!);
+          if (cancelled) return;
+          setMessages((prev) =>
+            prev.map((x) => (x.id === m.id ? { ...x, attachment_url: url } : x))
+          );
+        });
+    }
+
+    const interval = window.setInterval(refetch, 5000);
+    // Refetch imediato quando a aba volta a ficar visivel
+    function onVisible() {
+      if (document.visibilityState === "visible") refetch();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [conversaId, supabase]);
+
   function handlePickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
