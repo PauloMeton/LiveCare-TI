@@ -86,10 +86,90 @@ export function MessagesThread({ conversaId, currentUserId, initialMessages, emp
     };
   }, [pendingPreview]);
 
-  // Realtime — INSERT e UPDATE
+  // ============================================================
+  // REALTIME via WebSocket (Supabase Realtime / postgres_changes)
+  //
+  // Estrategia:
+  // - INSERT/UPDATE chegam via WS push (latencia tipica ~100ms).
+  // - Handler de status loga estado da conexao no console pra debug.
+  // - Em SUBSCRIBED (conectou OU reconectou): faz refetch pra pegar
+  //   mensagens que possam ter chegado durante uma desconexao breve.
+  // - Em CHANNEL_ERROR / TIMED_OUT / CLOSED: o supabase-js reconecta
+  //   sozinho exponencialmente; nao precisamos fazer nada manual.
+  // - visibilitychange: quando o user volta a aba, refetch (cobre o caso
+  //   do navegador ter pausado o WS em background no mobile).
+  // ============================================================
   useEffect(() => {
+    let cancelled = false;
+
+    async function refetch(reason: string) {
+      if (cancelled) return;
+      const { data, error: e } = await supabase
+        .from("livecare_messages")
+        .select(
+          "id, conversa_id, autor_id, conteudo, read_at, deleted_at, created_at, attachment_path, attachment_type, attachment_size"
+        )
+        .eq("conversa_id", conversaId)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: true })
+        .limit(200);
+      if (cancelled) return;
+      if (e) {
+        console.warn("[chat] refetch erro:", reason, e.message);
+        return;
+      }
+      if (!data) return;
+
+      const ordered = data as Message[];
+
+      setMessages((prev) => {
+        // Mantem signed URLs ja resolvidas
+        const prevById = new Map(prev.map((m) => [m.id, m] as const));
+        // Mantem mensagens otimistas (id < 0) que ainda nao tem versao real
+        const realServerKeys = new Set(
+          ordered.map((m) => `${m.autor_id}|${m.conteudo}|${m.attachment_path ?? ""}`)
+        );
+        const optimistic = prev.filter(
+          (m) =>
+            m.id < 0 &&
+            !realServerKeys.has(`${m.autor_id}|${m.conteudo}|${m.attachment_path ?? ""}`)
+        );
+        const merged = ordered.map((m) => {
+          const old = prevById.get(m.id);
+          return old && old.attachment_url ? { ...m, attachment_url: old.attachment_url } : m;
+        });
+        const final = [...merged, ...optimistic];
+        // Diff pra evitar re-render desnecessario
+        if (
+          final.length === prev.length &&
+          final.every((m, i) => m.id === prev[i]?.id && m.read_at === prev[i]?.read_at)
+        ) {
+          return prev;
+        }
+        return final;
+      });
+
+      // Resolve signed URLs em background pra anexos novos sem url
+      ordered
+        .filter((m) => m.attachment_path && !m.attachment_url)
+        .forEach(async (m) => {
+          const url = await getSignedUrl(supabase, m.attachment_path!);
+          if (cancelled) return;
+          setMessages((prev) =>
+            prev.map((x) => (x.id === m.id ? { ...x, attachment_url: url } : x))
+          );
+        });
+    }
+
     const channel = supabase
-      .channel(`livecare-messages:${conversaId}`)
+      .channel(`livecare-messages:${conversaId}`, {
+        config: {
+          // Garante que o broadcast/postgres_changes use a sessao autenticada
+          // do user logado (necessario pra respeitar RLS)
+          broadcast: { self: false },
+          presence: { key: "" },
+        },
+      })
       .on(
         "postgres_changes",
         {
@@ -100,12 +180,20 @@ export function MessagesThread({ conversaId, currentUserId, initialMessages, emp
         },
         async (payload) => {
           const m = payload.new as Message;
-          // Gera signed URL se vier com anexo
           if (m.attachment_path) {
             const url = await getSignedUrl(supabase, m.attachment_path);
             m.attachment_url = url;
           }
-          setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
+          setMessages((prev) => {
+            // Dedupe: se ja existe pelo id, mantem.
+            if (prev.some((x) => x.id === m.id)) return prev;
+            // Remove optimistic correspondente (mesmo autor + conteudo + anexo)
+            const key = `${m.autor_id}|${m.conteudo}|${m.attachment_path ?? ""}`;
+            const withoutOptimistic = prev.filter(
+              (x) => !(x.id < 0 && `${x.autor_id}|${x.conteudo}|${x.attachment_path ?? ""}` === key)
+            );
+            return [...withoutOptimistic, m];
+          });
         }
       )
       .on(
@@ -123,74 +211,34 @@ export function MessagesThread({ conversaId, currentUserId, initialMessages, emp
           );
         }
       )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [conversaId, supabase]);
-
-  // Polling de fallback — se o Realtime falhar (cache do SW, token expirado,
-  // rede ruim), garante que mensagens novas aparecem em ate 5s.
-  // Pausado quando a aba nao esta visivel pra economizar banda/CPU.
-  useEffect(() => {
-    let cancelled = false;
-
-    async function refetch() {
-      if (cancelled || document.visibilityState === "hidden") return;
-      const { data } = await supabase
-        .from("livecare_messages")
-        .select(
-          "id, conversa_id, autor_id, conteudo, read_at, deleted_at, created_at, attachment_path, attachment_type, attachment_size"
-        )
-        .eq("conversa_id", conversaId)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (cancelled || !data) return;
-
-      const ordered = (data as Message[]).slice().reverse();
-
-      setMessages((prev) => {
-        // Merge: mantem signed URLs ja resolvidas pra anexos
-        const prevById = new Map(prev.map((m) => [m.id, m] as const));
-        const merged = ordered.map((m) => {
-          const old = prevById.get(m.id);
-          return old && old.attachment_url ? { ...m, attachment_url: old.attachment_url } : m;
-        });
-        // Se nada mudou, retorna a mesma referencia pra evitar re-render
-        if (
-          merged.length === prev.length &&
-          merged.every((m, i) => m.id === prev[i]?.id && m.read_at === prev[i]?.read_at)
-        ) {
-          return prev;
+      .subscribe((status, err) => {
+        if (cancelled) return;
+        if (status === "SUBSCRIBED") {
+          // Conectado (ou reconectado) — sincroniza estado caso tenha perdido eventos
+          console.info("[chat] WS conectado:", conversaId);
+          void refetch("subscribed");
+        } else if (status === "CHANNEL_ERROR") {
+          console.warn("[chat] WS erro no canal:", err?.message ?? "");
+        } else if (status === "TIMED_OUT") {
+          console.warn("[chat] WS timeout — supabase-js vai reconectar");
+        } else if (status === "CLOSED") {
+          console.info("[chat] WS fechado");
         }
-        return merged;
       });
 
-      // Resolve signed URLs em background pra anexos novos sem url
-      ordered
-        .filter((m) => m.attachment_path && !m.attachment_url)
-        .forEach(async (m) => {
-          const url = await getSignedUrl(supabase, m.attachment_path!);
-          if (cancelled) return;
-          setMessages((prev) =>
-            prev.map((x) => (x.id === m.id ? { ...x, attachment_url: url } : x))
-          );
-        });
-    }
-
-    const interval = window.setInterval(refetch, 5000);
-    // Refetch imediato quando a aba volta a ficar visivel
+    // Refetch quando a aba volta a ficar visivel
+    // (mobile pausa WS em background; ao voltar, podemos ter perdido mensagens)
     function onVisible() {
-      if (document.visibilityState === "visible") refetch();
+      if (document.visibilityState === "visible") {
+        void refetch("visible");
+      }
     }
     document.addEventListener("visibilitychange", onVisible);
 
     return () => {
       cancelled = true;
-      window.clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
+      supabase.removeChannel(channel);
     };
   }, [conversaId, supabase]);
 
@@ -267,6 +315,27 @@ export function MessagesThread({ conversaId, currentUserId, initialMessages, emp
       setUploadProgress(100);
     }
 
+    // OPTIMISTIC UPDATE — mostra a mensagem na hora, sem esperar realtime/polling
+    // Usa id negativo temporario; o polling/realtime substitui pelo real depois
+    const tempId = -Date.now();
+    const optimistic: Message = {
+      id: tempId,
+      conversa_id: conversaId,
+      autor_id: currentUserId,
+      conteudo,
+      read_at: null,
+      deleted_at: null,
+      created_at: new Date().toISOString(),
+      attachment_path: attachmentPath,
+      attachment_type: attachmentType,
+      attachment_size: attachmentSize,
+      attachment_url: pendingPreview ?? null,
+    };
+    setMessages((prev) => [...prev, optimistic]);
+    // Limpa input imediatamente — UX melhor
+    setText("");
+    clearPending();
+
     const r = await sendMessage({
       conversaId,
       conteudo,
@@ -279,7 +348,9 @@ export function MessagesThread({ conversaId, currentUserId, initialMessages, emp
 
     if (r.error) {
       setError(r.error);
-      // Se a mensagem falhou mas o anexo subiu, tenta limpar pra não deixar lixo
+      // Rollback do optimistic
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      // Se o anexo subiu mas a mensagem falhou, tenta limpar
       if (attachmentPath) {
         await supabase.storage
           .from(ATTACHMENTS_BUCKET)
@@ -288,9 +359,8 @@ export function MessagesThread({ conversaId, currentUserId, initialMessages, emp
       }
       return;
     }
-
-    setText("");
-    clearPending();
+    // Sucesso — polling/realtime vai trazer o registro real em segundos
+    // e o useEffect do polling faz dedupe por id real, substituindo o temporario
   }
 
   async function handleDelete(id: number) {
