@@ -65,15 +65,15 @@ export function initNotifySound(): void {
   if (unlockHandlersInstalled) return;
   unlockHandlersInstalled = true;
 
-  const unlock = async () => {
+  // Wrapper sync que dispara o resume async — evita regra ESLint
+  // "no-misused-promises" em addEventListener
+  const unlock = () => {
     const c = getCtx();
     if (!c) return;
     if (c.state === "suspended") {
-      try {
-        await c.resume();
-      } catch {
-        /* ignora */
-      }
+      void c.resume().catch(() => {
+        /* ignora — browser bloqueou */
+      });
     }
   };
 
@@ -106,7 +106,6 @@ export async function playNotifySound(): Promise<void> {
     } catch {
       return;
     }
-    if (c.state !== "running") return;
   }
 
   try {
