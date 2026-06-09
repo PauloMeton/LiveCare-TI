@@ -188,7 +188,7 @@ export function MessagesThread({ conversaId, currentUserId, initialMessages, emp
           // Som de notificacao — so se a mensagem nao for minha
           // (evita beep no proprio envio, que ja tem o optimistic update)
           if (m.autor_id !== currentUserId) {
-            playNotifySound();
+            void playNotifySound();
           }
           setMessages((prev) => {
             // Dedupe: se ja existe pelo id, mantem.

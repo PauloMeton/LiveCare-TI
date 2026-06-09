@@ -25,7 +25,7 @@ export function ChatSoundToggle() {
     setChatSoundEnabled(next);
     setEnabled(next);
     // Toca o som no ato de ativar pra user confirmar que funciona
-    if (next) playNotifySound();
+    if (next) void playNotifySound();
   }
 
   return (
