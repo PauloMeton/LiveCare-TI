@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { sendMessage, markConversationRead, deleteOwnMessage } from "@/app/chat/actions";
 import { ATTACHMENTS_BUCKET, getSignedUrl } from "@/lib/chatAttachments";
+import { playNotifySound } from "@/lib/notifySound";
 import type { Message, AttachmentType } from "@/lib/types";
 
 type Props = {
@@ -183,6 +184,11 @@ export function MessagesThread({ conversaId, currentUserId, initialMessages, emp
           if (m.attachment_path) {
             const url = await getSignedUrl(supabase, m.attachment_path);
             m.attachment_url = url;
+          }
+          // Som de notificacao — so se a mensagem nao for minha
+          // (evita beep no proprio envio, que ja tem o optimistic update)
+          if (m.autor_id !== currentUserId) {
+            playNotifySound();
           }
           setMessages((prev) => {
             // Dedupe: se ja existe pelo id, mantem.

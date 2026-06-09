@@ -14,6 +14,7 @@ import { MobileBottomNav } from "@/components/nav/MobileBottomNav";
 import { updateProfile, updatePassword } from "@/app/perfil/actions";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { PushOptIn } from "@/components/pwa/PushOptIn";
+import { ChatSoundToggle } from "@/components/pwa/ChatSoundToggle";
 import type { ThemePref } from "@/lib/theme";
 
 type Props = {
@@ -73,9 +74,13 @@ export function PerfilForm({ profile, email, initialTheme }: Props) {
           </div>
         </Card>
 
-        {/* Push notifications */}
+        {/* Notificações */}
         <Card>
-          <PushOptIn />
+          <div className="flex flex-col gap-5">
+            <PushOptIn />
+            <div className="border-t border-graphite-100" />
+            <ChatSoundToggle />
+          </div>
         </Card>
 
         {/* Sair */}
