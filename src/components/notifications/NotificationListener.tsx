@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { pushToast } from "@/components/notifications/Toaster";
+import { playNotifySound } from "@/lib/notifySound";
 
 type Props = {
   currentUserId: string;
@@ -44,6 +46,8 @@ function log(...args: unknown[]) {
 }
 
 export function NotificationListener({ currentUserId, isAdmin }: Props) {
+  const router = useRouter();
+
   useEffect(() => {
     log("init", { currentUserId, isAdmin });
     const supabase = createClient();
@@ -86,6 +90,10 @@ export function NotificationListener({ currentUserId, isAdmin }: Props) {
                 href: `/chamados/${t.id}`,
                 tone: "info",
               });
+              // Som de notificacao (autoplay-policy: so toca apos primeira interacao)
+              void playNotifySound();
+              // Forca Server Components a re-buscar — lista do dashboard atualiza
+              router.refresh();
             }
           )
           .subscribe((status) => log("ch:admin-novo-chamado", status))
@@ -110,9 +118,28 @@ export function NotificationListener({ currentUserId, isAdmin }: Props) {
                 href: `/admin/chat?c=${m.conversa_id}`,
                 tone: "success",
               });
+              // Som — chat ja tem o som proprio no MessagesThread, mas
+              // isso garante que toca tambem quando o admin nao esta na tela do chat
+              void playNotifySound();
             }
           )
           .subscribe((status) => log("ch:admin-novas-msgs", status))
+      );
+
+      // (3) UPDATE em livecare_tickets — quando outro admin muda status,
+      // atualiza a lista (sem toast pra nao poluir)
+      channels.push(
+        supabase
+          .channel("notif-admin-update-chamado")
+          .on(
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "livecare_tickets" },
+            (payload) => {
+              log("admin: update em chamado", payload.new);
+              router.refresh();
+            }
+          )
+          .subscribe((status) => log("ch:admin-update-chamado", status))
       );
     } else {
       // --- FUNCIONÁRIO ---
@@ -145,6 +172,7 @@ export function NotificationListener({ currentUserId, isAdmin }: Props) {
                   href: `/chamados/${t.id}`,
                   tone: "success",
                 });
+                void playNotifySound();
               } else if (t.status === "aberto") {
                 // UPDATE pra "aberto" só acontece via reabrir (INSERT nasce 'aberto' direto)
                 pushToast({
@@ -153,7 +181,10 @@ export function NotificationListener({ currentUserId, isAdmin }: Props) {
                   href: `/chamados/${t.id}`,
                   tone: "warning",
                 });
+                void playNotifySound();
               }
+              // Sempre atualiza a lista de chamados do funcionario
+              router.refresh();
             }
           )
           .subscribe((status) => log("ch:user-status-chamados", status))
@@ -183,6 +214,7 @@ export function NotificationListener({ currentUserId, isAdmin }: Props) {
                 href: "/chat",
                 tone: "success",
               });
+              void playNotifySound();
             }
           )
           .subscribe((status) => log("ch:user-novas-msgs", status))
@@ -195,7 +227,7 @@ export function NotificationListener({ currentUserId, isAdmin }: Props) {
         supabase.removeChannel(ch);
       });
     };
-  }, [currentUserId, isAdmin]);
+  }, [currentUserId, isAdmin, router]);
 
   return null;
 }
