@@ -20,16 +20,28 @@ const toneClasses: Record<"success" | "warn" | "danger" | "neutral", string> = {
 /**
  * Pill que mostra o estado do SLA do chamado.
  * Auto-atualiza a cada minuto pra refletir contagem regressiva ao vivo.
+ *
+ * Importante — hidratacao: o estado inicial usa `ticket.created_at` como
+ * "agora" (deterministico, igual em server e client) pra evitar React error
+ * #418 (hydration mismatch). Apos o mount, useEffect substitui pelo Date()
+ * real do browser e re-renderiza.
  */
 export function SlaPill({ ticket, variant = "compact" }: Props) {
-  // Re-render a cada 60s pra atualizar o contador ("Vence em 3h" -> "Vence em 2h")
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    const id = window.setInterval(() => setTick((n) => n + 1), 60_000);
-    return () => window.clearInterval(id);
-  }, []);
+  // Estado inicial deterministico: usa created_at como now.
+  // Resultado: no SSR e no primeiro render do client, o pill mostra
+  // "Vence em <prazoHoras>" (porque now == created_at, restante == prazo).
+  // Apos hidratacao, useEffect atualiza pra now real.
+  const [info, setInfo] = useState(() => getSlaInfo(ticket, new Date(ticket.created_at)));
 
-  const info = getSlaInfo(ticket);
+  useEffect(() => {
+    // Atualiza imediatamente apos mount com now real
+    setInfo(getSlaInfo(ticket, new Date()));
+    // E continua atualizando a cada minuto pra contagem regressiva ao vivo
+    const id = window.setInterval(() => {
+      setInfo(getSlaInfo(ticket, new Date()));
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, [ticket]);
 
   return (
     <span
