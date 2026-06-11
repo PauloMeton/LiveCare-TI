@@ -80,7 +80,8 @@ export function NotificationListener({ currentUserId, isAdmin }: Props) {
             "postgres_changes",
             { event: "INSERT", schema: "public", table: "livecare_tickets" },
             async (payload) => {
-              log("admin: novo chamado", payload.new);
+              // eslint-disable-next-line no-console
+              console.info("[livecare] WS: novo chamado recebido", payload.new);
               const t = payload.new as TicketRow;
               if (!t) return;
               const nome = await getNome(t.autor_id);
@@ -96,7 +97,11 @@ export function NotificationListener({ currentUserId, isAdmin }: Props) {
               router.refresh();
             }
           )
-          .subscribe((status) => log("ch:admin-novo-chamado", status))
+          .subscribe((status, err) => {
+            // Log forcado (sem DEBUG) pra ajudar a diagnosticar conexao do WS
+            // eslint-disable-next-line no-console
+            console.info("[livecare] WS canal admin-novo-chamado:", status, err?.message ?? "");
+          })
       );
 
       // (2) Nova mensagem de qualquer funcionário (INSERT em livecare_messages onde autor != admin)
